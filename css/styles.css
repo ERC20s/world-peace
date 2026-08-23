@@ -1,0 +1,19 @@
+/* Minimal responsive styles for World Peace site */
+:root{--max-width:900px;--muted:#666}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;line-height:1.4;margin:0;color:#111}
+.container{max-width:var(--max-width);margin:0 auto;padding:1rem}
+.site-header{background:#f5f7fa;padding:1rem 0;border-bottom:1px solid #e1e4e8}
+.site-header h1{margin:0;font-size:1.25rem}
+.tagline{margin:0;color:var(--muted)}
+.main{padding:1rem 0}
+.conflict-list{list-style:none;padding:0;margin:0}
+.conflict-list li{margin:.5rem 0}
+.muted{color:var(--muted);font-size:0.95rem}
+.site-footer{border-top:1px solid #e1e4e8;padding:1rem;background:#fff;color:var(--muted);margin-top:2rem}
+.sr-only{position:absolute;left:-9999px}
+input[type=search]{width:100%;padding:.5rem;border:1px solid #ccd;max-width:400px;margin:.5rem 0}
+@media (min-width:600px){
+  .site-header{display:flex;align-items:center;justify-content:space-between}
+  .site-header .container{display:flex;align-items:center;gap:1rem}
+}

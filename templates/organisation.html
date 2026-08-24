@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Replace with: "<Organisation name> — World Peace" -->
+  <title>Organisation name — World Peace</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <!-- Replace with the organisation's official name (see data/organisation.schema.json: "name") -->
+      <h1>Organisation name</h1>
+      <p class="tagline">Neutral, sourced summary of the organisation's mission and activities.</p>
+      <p><a href="../index.html">Back to home</a></p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <h2>Overview</h2>
+      <!--
+        Required fields (see data/organisation.schema.json):
+        - country: primary country or region of operation
+        - mission: short, neutral mission statement, minLength 1
+        - website: the organisation's official site (format: uri)
+        Keep this paragraph factual and neutral; no advocacy or fundraising language.
+      -->
+      <p>
+        <strong>Country / region:</strong> Placeholder — e.g. "Northern Ireland".<br>
+        <strong>Website:</strong> <a href="https://example.org">https://example.org</a><br>
+        <strong>Mission:</strong> Replace with a short, neutral description of what the organisation does and who it serves.
+      </p>
+    </section>
+
+    <section>
+      <h2>Verifiable activities</h2>
+      <!--
+        List concrete, sourced activities. Each item should be checkable against a
+        published source (annual report, news coverage, the organisation's own site).
+      -->
+      <ul>
+        <li>Placeholder activity — short description. <a href="https://example.org/source-1">Source</a>.</li>
+        <li>Placeholder activity — short description. <a href="https://example.org/source-2">Source</a>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Linked conflict pages</h2>
+      <!--
+        Link to the conflicts/*.html pages this organisation is referenced from,
+        matching data/organisation.schema.json's "linkedInitiatives" field where possible.
+      -->
+      <ul>
+        <li><a href="../conflicts/example-conflict.html">Example Conflict</a> — replace with the actual conflict page(s) this organisation appears on.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>What a reader can do today</h2>
+      <!-- Non-fundraising actions only: read, volunteer, share reputable sources. -->
+      <ul>
+        <li>Read the organisation's website and published reports to learn about its methods and impact.</li>
+        <li>Volunteer time or skills where the organisation lists opportunities (contact the organisation directly; this guidance is illustrative, not fundraising).</li>
+        <li>Share reputable sources and verified information rather than unverified claims.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Sources</h2>
+      <!-- List every source cited above, plus any additional background reading. -->
+      <ul>
+        <li><a href="https://example.org">Organisation website</a></li>
+        <li><a href="https://example.org/source-1">Source for activity 1</a></li>
+        <li><a href="https://example.org/source-2">Source for activity 2</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Content is neutral and sourced. See site home for license and contribution notes.</p>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>

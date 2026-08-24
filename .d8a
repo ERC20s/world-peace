@@ -1,0 +1,20 @@
+# .d8a — who governs this repository, and how to run it.
+#
+# Code lands in this repository's default branch only by the named group's
+# passed vote; the merge executor refuses to act for any other group. Delete
+# this file to withdraw consent. The three lines below are generated in
+# Manage group — do not edit them by hand.
+version: 1
+group: d8a:batch-world-peace
+proof: T-c8zU9oXHiVU-wNHnHSWlHzLmgUeJepFyN_Yn2DOJdpjqud5oqG0BpCRnH0vteMcw-wxoLQqNKRaaoLYaYC3ygBL51CvskaKSAR37sjNAih-KO68yU3OFqiluFX-_8DuKbiy21UNqDyyYYV6DpWwBthyHNxSutre905a1DzV6gGgXx7isdJ_yjcFtVYLR_9bwl7xzj_IMHYZWFPl5IHlKzzZTeyKZclt0yburvhjHsabmFv8h-PXHvn5B1jy7a4Q9oXfCYwnN9z4uM5mUX4i9HyDbznNvt3bNQYTDdQcWgx1Bp6jGlI4QX37pvKF8D9idksQKXeVsdyLPKK7jkMCg
+
+# Where this repository runs live, if anywhere — the footer shows it as a globe.
+# url: https://example.com
+
+# How to run this repository. Yours to edit — the governance lines above are
+# not. One terminal per entry, launched together by the ▶ button in VS Code
+# (the VSD8A extension) and by nothing else.
+run:
+  {
+    "site": { "cmd": "npx --yes serve -l 5001 .", "port": 5001 }
+  }

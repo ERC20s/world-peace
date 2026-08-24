@@ -9,6 +9,10 @@ Files added in this change:
 - css/styles.css — minimal responsive site styles
 - js/main.js — small client-side search/filter for the conflict list
 
+Organisation pages
+- templates/organisation.html — reusable, commented template for a plain-HTML organisation page (name, country/mission, verifiable activities, links to conflict pages, non-fundraising actions, sources).
+- content/organisations/example-organisation.html — worked example filled with placeholder content, matching data/examples/organisation-example.json.
+
 How to preview locally
 - Clone the repository and open index.html in a browser (or serve the directory with a simple static server).
 - From the home page click the Northern Ireland link to view the conflict page.
@@ -16,6 +20,7 @@ How to preview locally
 Content guidance for contributors
 - Keep updates neutral and strictly sourced. Cite verifiable sources on each conflict page.
 - No fundraising or advocacy language; "what a reader can do today" must list non-fundraising actions (read, volunteer, share reputable sources).
+- Organisation pages: start from templates/organisation.html and include the organisation's name, country/region, mission, verifiable sourced activities, links to the conflict pages that reference it, a non-fundraising "what a reader can do today" section, and a sources list. See content/organisations/example-organisation.html for a filled-in example, and data/organisation.schema.json for the underlying fields.
 
 Notes for reviewers
 - Confirm files load (CSS and JS referenced from index.html and conflict pages).

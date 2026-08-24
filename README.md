@@ -12,6 +12,7 @@ Files added in this change:
 Organisation pages
 - templates/organisation.html — reusable, commented template for a plain-HTML organisation page (name, country/mission, verifiable activities, links to conflict pages, non-fundraising actions, sources).
 - content/organisations/example-organisation.html — worked example filled with placeholder content, matching data/examples/organisation-example.json.
+- content/organisations/corrymeela.html — first real organisation page, for Corrymeela Community, built from the template. It links back to conflicts/northern-ireland.html, and that page's Corrymeela entry and its Sources list link to this page. Reachable from index.html under "Organisations".
 
 How to preview locally
 - Clone the repository and open index.html in a browser (or serve the directory with a simple static server).
@@ -26,6 +27,7 @@ Notes for reviewers
 - Confirm files load (CSS and JS referenced from index.html and conflict pages).
 - Check the conflict page contains at least three sourced initiatives and a "what a reader can do today" section.
 - Ensure all external links resolve and text remains neutral.
+- For content/organisations/corrymeela.html: check it follows data/organisation.schema.json's fields, links back to conflicts/northern-ireland.html, and that the Northern Ireland page links to it from both the initiatives list and the sources list. Confirm the previously truncated BBC source link on that page now resolves.
 
 Content schemas
 - data/conflict.schema.json — JSON Schema for a conflict entry: slug, title, summary, optional date range, regions, initiatives (name, organisation, description, sourceUrl), optional organisation ids, actions ("what a reader can do today", non-fundraising), sources, and a neutralityReviewed flag.

@@ -17,6 +17,13 @@ Content guidance for contributors
 - Keep updates neutral and strictly sourced. Cite verifiable sources on each conflict page.
 - No fundraising or advocacy language; "what a reader can do today" must list non-fundraising actions (read, volunteer, share reputable sources).
 
+How to write the content:
+- Start a new conflict page from templates/conflict-template.html — it contains a
+  documented skeleton with REQUIRED section markers and an example expandable
+  sources list.
+- Follow content/conflict-checklist.md for verifiability requirements (source
+  format, tone constraints) before opening a pull request.
+
 Notes for reviewers
 - Confirm files load (CSS and JS referenced from index.html and conflict pages).
 - Check the conflict page contains at least three sourced initiatives and a "what a reader can do today" section.

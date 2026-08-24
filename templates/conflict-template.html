@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- REQUIRED: replace with "<Conflict name> — World Peace" -->
+  <title>Conflict name — World Peace</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    /* Minimal, page-local styles only for the expandable sources list below.
+       Do not add page-specific colours or layout; use css/styles.css for shared styles. */
+    .sources-toggle{background:none;border:1px solid #ccd;padding:.35rem .6rem;cursor:pointer;font:inherit}
+    .sources-list[hidden]{display:none}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <!-- REQUIRED: conflict name -->
+      <h1>Conflict name</h1>
+      <!-- REQUIRED: one-sentence neutral summary, no advocacy language -->
+      <p class="tagline">One-sentence neutral summary of the conflict and current peace-building status.</p>
+      <p><a href="../index.html">Back to home</a></p>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- REQUIRED SECTION: title and summary -->
+    <section>
+      <h2>Overview</h2>
+      <!-- REQUIRED: a short, neutral background/timeline paragraph. Cite dates and
+           avoid taking sides. Link inline sources where a specific claim needs one. -->
+      <p>
+        Background and timeline: describe the origin of the conflict, key dates, and the
+        current state of peace efforts in neutral, factual language. Every non-obvious
+        claim should be traceable to a source listed below.
+      </p>
+    </section>
+
+    <!-- REQUIRED SECTION: verified organisations -->
+    <section>
+      <h2>Initiatives and organisations</h2>
+      <!-- REQUIRED: at least three entries. Each entry needs a name, its role/activity,
+           and a verifiable link to the organisation's own site or a reputable report. -->
+      <ul>
+        <li>
+          <strong>Organisation name</strong> — one-sentence description of its role or
+          activity in peace-building for this conflict. <a href="https://example.org/">Source</a>.
+        </li>
+        <li>
+          <strong>Organisation name</strong> — one-sentence description. <a href="https://example.org/">Source</a>.
+        </li>
+        <li>
+          <strong>Organisation name</strong> — one-sentence description. <a href="https://example.org/">Source</a>.
+        </li>
+      </ul>
+    </section>
+
+    <!-- REQUIRED SECTION: what a reader can do today -->
+    <section>
+      <h2>What a reader can do today</h2>
+      <!-- REQUIRED: non-fundraising, actionable items only (read, volunteer, share
+           verified sources, contact organisations directly). No donation links or
+           advocacy calls to action. -->
+      <ul>
+        <li>Read the organisations' websites and published reports to learn about their methods and impact.</li>
+        <li>Volunteer time or skills with local programmes where listed (contact organisations directly).</li>
+        <li>Share reputable sources and verified histories rather than unverified claims.</li>
+      </ul>
+    </section>
+
+    <!-- REQUIRED SECTION: sources -->
+    <section>
+      <h2>Sources</h2>
+      <!-- REQUIRED: every source needs a title, a URL, and (in content, not just here)
+           a publication date and type (news, report, primary document, organisation
+           site). See content/conflict-checklist.md for the exact format. -->
+      <button class="sources-toggle" type="button" aria-expanded="true" aria-controls="sources-list">
+        Hide sources
+      </button>
+      <ul id="sources-list" class="sources-list">
+        <li><a href="https://example.org/">Organisation or report title</a> — type, date.</li>
+        <li><a href="https://example.org/">Organisation or report title</a> — type, date.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Content is neutral and sourced. See site home for license and contribution notes.</p>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+  <script>
+    // Tiny, page-local script: toggles the sources list. No dependencies.
+    (function () {
+      var btn = document.querySelector('.sources-toggle');
+      var list = document.getElementById('sources-list');
+      if (!btn || !list) return;
+      btn.addEventListener('click', function () {
+        var hidden = list.hasAttribute('hidden');
+        if (hidden) {
+          list.removeAttribute('hidden');
+          btn.textContent = 'Hide sources';
+          btn.setAttribute('aria-expanded', 'true');
+        } else {
+          list.setAttribute('hidden', '');
+          btn.textContent = 'Show sources';
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

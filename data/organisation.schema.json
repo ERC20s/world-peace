@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ERC20s/world-peace/data/organisation.schema.json",
+  "title": "Organisation",
+  "description": "A peace-building organisation referenced from one or more conflict pages.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "website", "country", "mission"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "URL-safe identifier used to link from conflict pages, e.g. \"corrymeela-community\".",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "website": {
+      "type": "string",
+      "format": "uri"
+    },
+    "country": {
+      "type": "string",
+      "description": "Primary country or region the organisation operates in.",
+      "minLength": 1
+    },
+    "mission": {
+      "type": "string",
+      "description": "Short, neutral description of the organisation's mission.",
+      "minLength": 1
+    },
+    "contact": {
+      "type": "string",
+      "description": "Public-facing contact channel (contact page or email), not a fundraising link."
+    },
+    "linkedInitiatives": {
+      "type": "array",
+      "description": "Names of initiatives (from conflict pages) this organisation runs.",
+      "items": { "type": "string" }
+    }
+  }
+}

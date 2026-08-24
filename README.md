@@ -21,3 +21,15 @@ Notes for reviewers
 - Confirm files load (CSS and JS referenced from index.html and conflict pages).
 - Check the conflict page contains at least three sourced initiatives and a "what a reader can do today" section.
 - Ensure all external links resolve and text remains neutral.
+
+Content schemas
+- data/conflict.schema.json — JSON Schema for a conflict entry: slug, title, summary, optional date range, regions, initiatives (name, organisation, description, sourceUrl), optional organisation ids, actions ("what a reader can do today", non-fundraising), sources, and a neutralityReviewed flag.
+- data/organisation.schema.json — JSON Schema for an organisation entry: id, name, website, country, mission, optional contact channel, and linked initiative names.
+- data/examples/conflict-example.json and data/examples/organisation-example.json — generic placeholder examples that validate against the schemas above; not tied to any specific conflict page.
+- These schemas describe the data future conflict/organisation pages should be authored from; they do not yet drive the HTML templates automatically.
+
+Validating examples locally
+- Install a JSON Schema validator, e.g. `npm install -g ajv-cli` (or use any Draft-07 compatible validator).
+- Run: `ajv validate -s data/conflict.schema.json -d data/examples/conflict-example.json`
+- Run: `ajv validate -s data/organisation.schema.json -d data/examples/organisation-example.json`
+- Both commands should report the example file as valid.

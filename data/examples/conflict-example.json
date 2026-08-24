@@ -1,0 +1,31 @@
+{
+  "slug": "example-conflict",
+  "title": "Example Conflict",
+  "summary": "Placeholder, neutral summary describing an example conflict and the current state of peace-building efforts. Replace with a real, sourced summary before publishing a conflict page.",
+  "dateRange": {
+    "start": "1990",
+    "end": "ongoing"
+  },
+  "regions": ["Example Country"],
+  "initiatives": [
+    {
+      "name": "Example Dialogue Programme",
+      "organisation": "Example Reconciliation Trust",
+      "description": "A cross-community dialogue programme bringing together representatives to discuss reconciliation, illustrative of the level of detail expected.",
+      "sourceUrl": "https://example.org/dialogue-programme"
+    }
+  ],
+  "organisations": ["example-reconciliation-trust"],
+  "actions": [
+    "Read the organisation's published reports to learn about its methods and impact.",
+    "Volunteer time or skills where the organisation lists opportunities (contact directly).",
+    "Share reputable, verified sources rather than unverified claims."
+  ],
+  "sources": [
+    {
+      "url": "https://example.org/dialogue-programme",
+      "description": "Example Reconciliation Trust programme page."
+    }
+  ],
+  "neutralityReviewed": true
+}

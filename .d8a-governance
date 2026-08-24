@@ -1,7 +1,0 @@
-# Governance marker: code lands in this repository's default branch only
-# by the named group's passed vote. The merge executor refuses to act for
-# any other group. Keep this file in the default branch; delete it to
-# withdraw consent. Generated in Manage group — do not edit by hand.
-version: 1
-group: d8a:batch-world-peace
-token: T-c8zU9oXHiVU-wNHnHSWlHzLmgUeJepFyN_Yn2DOJdpjqud5oqG0BpCRnH0vteMcw-wxoLQqNKRaaoLYaYC3ygBL51CvskaKSAR37sjNAih-KO68yU3OFqiluFX-_8DuKbiy21UNqDyyYYV6DpWwBthyHNxSutre905a1DzV6gGgXx7isdJ_yjcFtVYLR_9bwl7xzj_IMHYZWFPl5IHlKzzZTeyKZclt0yburvhjHsabmFv8h-PXHvn5B1jy7a4Q9oXfCYwnN9z4uM5mUX4i9HyDbznNvt3bNQYTDdQcWgx1Bp6jGlI4QX37pvKF8D9idksQKXeVsdyLPKK7jkMCg

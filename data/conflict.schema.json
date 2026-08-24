@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ERC20s/world-peace/data/conflict.schema.json",
+  "title": "Conflict",
+  "description": "A single conflict page: neutral, sourced peace-building content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "slug",
+    "title",
+    "summary",
+    "regions",
+    "initiatives",
+    "actions",
+    "sources",
+    "neutralityReviewed"
+  ],
+  "properties": {
+    "slug": {
+      "type": "string",
+      "description": "URL-safe identifier matching the HTML file name under conflicts/, e.g. \"northern-ireland\".",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title of the conflict, e.g. \"Northern Ireland\".",
+      "minLength": 1
+    },
+    "summary": {
+      "type": "string",
+      "description": "Short, neutral overview of the conflict and its current peace-building status.",
+      "minLength": 1
+    },
+    "dateRange": {
+      "type": "object",
+      "description": "Approximate active period of the conflict, if applicable.",
+      "additionalProperties": false,
+      "properties": {
+        "start": { "type": "string", "description": "Year or ISO date the conflict is generally considered to have started." },
+        "end": { "type": "string", "description": "Year or ISO date it ended, or \"ongoing\"." }
+      }
+    },
+    "regions": {
+      "type": "array",
+      "description": "Countries or regions involved.",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "initiatives": {
+      "type": "array",
+      "description": "Concrete, verifiable peace-building initiatives, each attributable to an organisation and a source.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "organisation", "description", "sourceUrl"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "organisation": { "type": "string", "minLength": 1, "description": "Name of the organisation running the initiative; should match an organisation.schema.json entry where one exists." },
+          "description": { "type": "string", "minLength": 1 },
+          "sourceUrl": { "type": "string", "format": "uri" }
+        }
+      }
+    },
+    "organisations": {
+      "type": "array",
+      "description": "Optional list of organisation ids (see organisation.schema.json) active in this conflict.",
+      "items": { "type": "string" }
+    },
+    "actions": {
+      "type": "array",
+      "description": "\"What a reader can do today\" — non-fundraising actions only (read, volunteer, share verified sources).",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "sources": {
+      "type": "array",
+      "description": "Sources supporting the summary and initiatives.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "description"],
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "description": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "neutralityReviewed": {
+      "type": "boolean",
+      "description": "True once a contributor has confirmed the page uses neutral tone and contains no fundraising or advocacy language."
+    }
+  }
+}

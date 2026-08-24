@@ -1,0 +1,9 @@
+{
+  "id": "example-reconciliation-trust",
+  "name": "Example Reconciliation Trust",
+  "website": "https://example.org",
+  "country": "Example Country",
+  "mission": "A placeholder organisation illustrating the fields expected for organisation entries: neutral mission statement, public contact channel, and linked initiatives.",
+  "contact": "https://example.org/contact",
+  "linkedInitiatives": ["Example Dialogue Programme"]
+}

@@ -16,5 +16,5 @@ proof: T-c8zU9oXHiVU-wNHnHSWlHzLmgUeJepFyN_Yn2DOJdpjqud5oqG0BpCRnH0vteMcw-wxoLQq
 # (the VSD8A extension) and by nothing else.
 run:
   {
-    "site": { "cmd": "npx --yes serve -l 5001 .", "port": 5001 }
+    "web": { "cmd": "npm run dev", "port": 5001 }
   }

@@ -1,0 +1,11 @@
+{
+  "name": "world-peace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A static site mapping concrete, verifiable peace-building initiatives - per-conflict pages, organisations and sources.",
+  "scripts": {
+    "dev": "npx --yes serve -l 5001 .",
+    "check": "node scripts/check-site.js"
+  },
+  "license": "UNLICENSED"
+}

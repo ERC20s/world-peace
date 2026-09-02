@@ -129,5 +129,6 @@ payments:
 # (the VSD8A extension) and by nothing else.
 run:
   {
-    "site": { "cmd": "npx --yes serve -l 5001 .", "port": 5001 }
+    "site": { "cmd": "npx --yes serve -l 5001 .", "port": 5001 },
+    "link-check": { "cmd": "node tools/check-links.js" }
   }

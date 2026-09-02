@@ -18,11 +18,25 @@ in a browser, or serve the repository root with any static server, to preview.
    `<ul id="conflict-list" class="conflict-list">`, add one line:
 
    ```html
-   <li><a href="conflicts/<slug>.html">Title</a></li>
+   <li data-keywords="Region Country Parties Agreement name Years"><a href="conflicts/<slug>.html">Title</a></li>
    ```
 
    A page that is not in that list is invisible to readers and to the search box
    in `js/main.js`.
+
+   `data-keywords` is what makes the search find the page by anything other than
+   its title. `js/main.js` matches every whitespace-separated word of the query
+   against the link text **plus** `data-keywords`, both lower-cased, so a reader
+   who types "ulster", "accra" or "good friday" still lands on the right page.
+   Take the terms from the page itself — country, region, other names for the
+   place, the parties named on the page, agreement names, key years — and keep
+   them factual and neutral; the attribute is content, not marketing. An item
+   with no `data-keywords` still matches on its link text, as before.
+
+   The search writes its result into
+   `<p id="conflict-search-status" role="status" aria-live="polite">` above the
+   list ("Showing 1 of 2 conflicts." or a no-results line), and `index.html?q=…`
+   arrives already filtered, so links into a filtered list work.
 5. Open a pull request. A separate Code proposal is what merges it.
 
 ## Adding an organisation page
@@ -67,6 +81,10 @@ Tick every line before you open the pull request. Reviewers check the same list.
 Tick every line before you open the pull request. Reviewers check the same list.
 
 - [ ] The file is `conflicts/<slug>.html` and the slug matches the link in `index.html`.
+- [ ] The `index.html` list item carries a `data-keywords` attribute whose terms all
+      appear on the conflict page itself (country, region, parties, agreement names,
+      years) — no promotional or partisan wording. Type two of them into the search
+      box and check the page still shows.
 - [ ] At least three initiatives, each with an organisation named and a working source link.
 - [ ] Every external link resolves (open each one; no 404s, no redirects to a parked domain).
 - [ ] Relative paths are correct from inside `conflicts/`: `../css/styles.css`,

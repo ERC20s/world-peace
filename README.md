@@ -17,6 +17,7 @@ Conflict pages
 Organisation pages
 - templates/organisation.html — reusable, commented template for a plain-HTML organisation page (name, country/mission, verifiable activities, links to conflict pages, non-fundraising actions, sources).
 - content/organisations/example-organisation.html — worked example filled with placeholder content, matching data/examples/organisation-example.json.
+- Organisation pages live two levels below the repository root (content/organisations/<slug>.html), so their relative paths use two steps — ../../css/styles.css, ../../js/main.js, ../../index.html and ../../conflicts/<slug>.html — unlike conflict pages, which use one. The template already carries the two-level paths, which is why it looks unstyled if opened straight from templates/.
 
 How to preview locally
 - Clone the repository and open index.html in a browser (or serve the directory with a simple static server).
@@ -33,7 +34,7 @@ Notes for reviewers
 - Confirm files load (CSS and JS referenced from index.html and conflict pages).
 - Check the conflict page contains at least three sourced initiatives and a "what a reader can do today" section.
 - Ensure all external links resolve and text remains neutral.
-- Work through the pre-submit checklist in CONTRIBUTING.md; it is the same list, in full.
+- Work through the pre-submit checklist in CONTRIBUTING.md; conflict pages and organisation pages have one each, and organisation pages are checked for the two-level relative paths.
 
 Content schemas
 - data/conflict.schema.json — JSON Schema for a conflict entry: slug, title, summary, optional date range, regions, initiatives (name, organisation, description, sourceUrl), optional organisation ids, actions ("what a reader can do today", non-fundraising), sources, and a neutralityReviewed flag.

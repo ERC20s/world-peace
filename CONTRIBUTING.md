@@ -95,6 +95,8 @@ Tick every line before you open the pull request. Reviewers check the same list.
       and figures attributed to the source that published them.
 - [ ] Sources section lists every source cited above, each with a description of
       what it supports.
+- [ ] The page includes a visible "Sources last checked: YYYY-MM-DD" line and the
+      date is an ISO (YYYY-MM-DD) date when the links were last validated.
 - [ ] The `<title>` reads "<Conflict title> — World Peace".
 - [ ] You state in the pull request that you have read the page back for
       neutrality (`neutralityReviewed`).

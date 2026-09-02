@@ -27,5 +27,6 @@
       "description": "Example Reconciliation Trust programme page."
     }
   ],
-  "neutralityReviewed": true
+  "neutralityReviewed": true,
+  "sourcesCheckedOn": "2026-09-02"
 }

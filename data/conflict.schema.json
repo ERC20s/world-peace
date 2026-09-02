@@ -90,6 +90,11 @@
     "neutralityReviewed": {
       "type": "boolean",
       "description": "True once a contributor has confirmed the page uses neutral tone and contains no fundraising or advocacy language."
+    },
+    "sourcesCheckedOn": {
+      "type": "string",
+      "description": "ISO date when the page's external links were last validated, e.g. 2026-09-02",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
     }
   }
 }

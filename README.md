@@ -7,15 +7,22 @@ Files added in this change:
 - index.html — site home with a searchable conflict list
 - conflicts/northern-ireland.html — example per-conflict page with initiatives, organisations, actions and sources
 - css/styles.css — minimal responsive site styles
-- js/main.js — small client-side search/filter for the conflict list
+- js/main.js — small client-side search/filter, wired to the conflict list on the home page and to the organisation list on the organisations index (a shared wire(inputId, listId) helper, guarded so pages without those ids are unaffected)
 
 Organisation pages
+- content/organisations/index.html — the organisations index: a searchable list of every organisation page, linked from the Organisations section of the home page. This is the only route a reader has into content/organisations/, so a new page is not published until it is listed here.
 - templates/organisation.html — reusable, commented template for a plain-HTML organisation page (name, country/mission, verifiable activities, links to conflict pages, non-fundraising actions, sources).
-- content/organisations/example-organisation.html — worked example filled with placeholder content, matching data/examples/organisation-example.json.
+- content/organisations/example-organisation.html — worked example filled with placeholder content, matching data/examples/organisation-example.json. It is labelled on the index as a placeholder, not a real organisation.
+
+Adding a new organisation page
+- Copy templates/organisation.html to content/organisations/<slug>.html and fill in every section, authoring the content from data/organisation.schema.json.
+- Keep the relative paths the example uses: ../../css/styles.css, ../../js/main.js and ../../index.html.
+- Add one <li> to the <ul id="organisation-list"> in content/organisations/index.html linking to the new file. The list is maintained by hand; there is no build step.
 
 How to preview locally
 - Clone the repository and open index.html in a browser (or serve the directory with a simple static server).
 - From the home page click the Northern Ireland link to view the conflict page.
+- From the home page click "All organisation pages" under Organisations to reach the organisations index, then an organisation page from there.
 
 Content guidance for contributors
 - Keep updates neutral and strictly sourced. Cite verifiable sources on each conflict page.
@@ -23,7 +30,8 @@ Content guidance for contributors
 - Organisation pages: start from templates/organisation.html and include the organisation's name, country/region, mission, verifiable sourced activities, links to the conflict pages that reference it, a non-fundraising "what a reader can do today" section, and a sources list. See content/organisations/example-organisation.html for a filled-in example, and data/organisation.schema.json for the underlying fields.
 
 Notes for reviewers
-- Confirm files load (CSS and JS referenced from index.html and conflict pages).
+- Confirm files load (CSS and JS referenced from index.html, conflict pages and content/organisations/*.html).
+- Confirm the home page reaches the organisations index and the index reaches each organisation page, and that both search boxes filter their lists.
 - Check the conflict page contains at least three sourced initiatives and a "what a reader can do today" section.
 - Ensure all external links resolve and text remains neutral.
 

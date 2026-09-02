@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Organisations — World Peace</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1>Organisations</h1>
+      <p class="tagline">Neutral, sourced pages for the organisations named on this site's conflict pages.</p>
+      <p><a href="../../index.html">Back to home</a></p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <p>Each organisation page gives the organisation's country or region, its mission in neutral terms, verifiable activities with sources, the conflict pages that reference it, and non-fundraising actions a reader can take today. Use the search box to filter the list.</p>
+    </section>
+
+    <section>
+      <h2>All organisation pages</h2>
+      <label for="organisation-search" class="sr-only">Search organisations</label>
+      <input id="organisation-search" type="search" placeholder="Search organisations" aria-label="Search organisations">
+      <ul id="organisation-list" class="conflict-list">
+        <li><a href="example-organisation.html">Example Reconciliation Trust</a> — placeholder example, not a real organisation; it shows the fields an organisation page is expected to fill.</li>
+      </ul>
+      <p class="muted">Only the placeholder example exists so far. Real organisation pages are added one at a time, each one sourced and neutral, as conflict pages come to reference them.</p>
+    </section>
+
+    <section>
+      <h2>Adding an organisation page</h2>
+      <ul>
+        <li>Copy <a href="../../templates/organisation.html">templates/organisation.html</a> to <code>content/organisations/&lt;slug&gt;.html</code> and fill in every section.</li>
+        <li>Author the content from the fields in <a href="../../data/organisation.schema.json">data/organisation.schema.json</a>; <a href="../../data/examples/organisation-example.json">data/examples/organisation-example.json</a> is a validating example.</li>
+        <li>Add one <code>&lt;li&gt;</code> to the list above linking to the new file, so the page is reachable from the site.</li>
+        <li>Keep the relative paths used here: <code>../../css/styles.css</code>, <code>../../js/main.js</code> and <code>../../index.html</code>.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Content is neutral and sourced. See site home for license and contribution notes.</p>
+    </div>
+  </footer>
+
+  <script src="../../js/main.js"></script>
+</body>
+</html>

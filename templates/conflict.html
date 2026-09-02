@@ -110,12 +110,19 @@
         "url" and a "description" — here, the link text is the description.
         List every source cited above, plus any further background reading.
         Check each link resolves before submitting.
+
+        New optional schema field: "sourcesCheckedOn" — ISO date when the
+        page's external links were last validated. Add that property to the
+        page's data object if you include the line below.
       -->
       <ul>
         <li><a href="https://example.org/source-1">Publisher — what this source supports</a></li>
         <li><a href="https://example.org/source-2">Publisher — what this source supports</a></li>
         <li><a href="https://example.org/source-3">Publisher — what this source supports</a></li>
       </ul>
+
+      <!-- Show when the contributor last verified the links. Update to an ISO date. -->
+      <p class="muted">Sources last checked: YYYY-MM-DD</p>
     </section>
   </main>
 

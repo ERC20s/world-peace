@@ -5,7 +5,15 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <!-- Replace with: "<Organisation name> — World Peace" -->
   <title>Organisation name — World Peace</title>
-  <link rel="stylesheet" href="../css/styles.css">
+  <!--
+    Every relative path in this template assumes the finished page lives in
+    content/organisations/<slug>.html — two directory levels below the
+    repository root, so site assets are ../../css/styles.css and ../../js/main.js,
+    the home page is ../../index.html and conflict pages are ../../conflicts/<slug>.html.
+    Because of that, opening this file directly from templates/ shows unstyled
+    markup; preview a copy saved in content/organisations/ instead.
+  -->
+  <link rel="stylesheet" href="../../css/styles.css">
 </head>
 <body>
   <header class="site-header">
@@ -13,7 +21,7 @@
       <!-- Replace with the organisation's official name (see data/organisation.schema.json: "name") -->
       <h1>Organisation name</h1>
       <p class="tagline">Neutral, sourced summary of the organisation's mission and activities.</p>
-      <p><a href="../index.html">Back to home</a></p>
+      <p><a href="../../index.html">Back to home</a></p>
     </div>
   </header>
 
@@ -53,7 +61,7 @@
         matching data/organisation.schema.json's "linkedInitiatives" field where possible.
       -->
       <ul>
-        <li><a href="../conflicts/northern-ireland.html">Northern Ireland</a> — replace with the actual conflict page(s) this organisation appears on.</li>
+        <li><a href="../../conflicts/northern-ireland.html">Northern Ireland</a> — replace with the actual conflict page(s) this organisation appears on.</li>
       </ul>
     </section>
 
@@ -84,6 +92,6 @@
     </div>
   </footer>
 
-  <script src="../js/main.js"></script>
+  <script src="../../js/main.js"></script>
 </body>
 </html>

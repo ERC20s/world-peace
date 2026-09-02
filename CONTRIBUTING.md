@@ -33,7 +33,36 @@ fill it in the same way; the fields are listed in
 `content/organisations/example-organisation.html` is a worked example. Link the
 page from the conflict pages that reference the organisation.
 
-## Pre-submit checklist
+Organisation pages sit **two** directory levels below the repository root, so
+their relative paths carry two `../` steps — one more than a conflict page. The
+template ships with the two-level paths already in place; do not "fix" them back
+to one level, and expect an unstyled page if you open the template directly from
+`templates/`.
+
+### Organisation pre-submit checklist
+
+Tick every line before you open the pull request. Reviewers check the same list.
+
+- [ ] The file is `content/organisations/<slug>.html`, slug lower-case and hyphenated.
+- [ ] Relative paths are correct from inside `content/organisations/`:
+      `../../css/styles.css`, `../../js/main.js`, `../../index.html`,
+      `../../conflicts/<slug>.html`. Compare against
+      `content/organisations/example-organisation.html`.
+- [ ] The `<title>` reads "<Organisation name> — World Peace".
+- [ ] Country/region, official website and a short neutral mission are filled in,
+      matching `data/organisation.schema.json`.
+- [ ] Every activity listed is concrete and sourced — each one checkable against a
+      published source (annual report, news coverage, the organisation's own site).
+- [ ] The "Linked conflict pages" section points at real `conflicts/*.html` pages,
+      and those pages reference the organisation back.
+- [ ] "What a reader can do today" lists non-fundraising actions only — read,
+      learn, volunteer, share verified sources. No donate links, no appeals.
+- [ ] Neutral tone throughout; contested facts attributed to the source that
+      published them.
+- [ ] Sources section lists every source cited above.
+- [ ] Every external link resolves (open each one; no 404s, no parked domains).
+
+## Pre-submit checklist (conflict pages)
 
 Tick every line before you open the pull request. Reviewers check the same list.
 

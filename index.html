@@ -22,10 +22,13 @@
     <section>
       <h2>Conflicts</h2>
       <label for="conflict-search" class="sr-only">Search conflicts</label>
-      <input id="conflict-search" type="search" placeholder="Search conflicts" aria-label="Search conflicts">
+      <input id="conflict-search" type="search" placeholder="Search conflicts" aria-label="Search conflicts" aria-describedby="conflict-search-status">
+      <p id="conflict-search-status" class="muted search-status" role="status" aria-live="polite" hidden></p>
       <ul id="conflict-list" class="conflict-list">
-        <li><a href="conflicts/northern-ireland.html">Northern Ireland</a></li>
-        <li><a href="conflicts/liberia.html">Liberia</a></li>
+        <!-- data-keywords: extra search terms, taken from the conflict page itself
+             (country, region, parties, agreement names, years). See CONTRIBUTING.md. -->
+        <li data-keywords="United Kingdom Ireland Ulster Belfast Europe The Troubles 1968 1998 Good Friday Agreement Belfast Agreement sectarian reconciliation cross-community Corrymeela Community Relations Council WAVE Trauma Centre"><a href="conflicts/northern-ireland.html">Northern Ireland</a></li>
+        <li data-keywords="West Africa Monrovia Accra Ghana First Liberian Civil War Second Liberian Civil War 1989 1997 1999 2003 Accra Comprehensive Peace Agreement UNMIL Truth and Reconciliation Commission WANEP WIPNET Women of Liberia Mass Action for Peace Leymah Gbowee"><a href="conflicts/liberia.html">Liberia</a></li>
       </ul>
       <p class="muted">More conflict pages will be added in future cycles; each page contains sourced initiatives, organisations, and non-fundraising actions a reader can take.</p>
     </section>

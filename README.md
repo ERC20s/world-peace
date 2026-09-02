@@ -25,7 +25,14 @@ Content guidance for contributors
 Notes for reviewers
 - Confirm files load (CSS and JS referenced from index.html and conflict pages).
 - Check the conflict page contains at least three sourced initiatives and a "what a reader can do today" section.
-- Ensure all external links resolve and text remains neutral.
+- Ensure all external links resolve and text remains neutral: every external link must have been opened and confirmed to resolve, and every page must carry a meta description.
+
+Page descriptions and share previews
+- Every page carries `<meta name="description">` plus `og:title`, `og:description`, `og:type`, `og:site_name` and `twitter:card`/`twitter:title`/`twitter:description`, so search results and pasted links show the page's own summary instead of a clipped fragment.
+- The description text is copied from the page's own Overview (or, on the home page, the intro paragraph) and must introduce no claim the page does not already make and source. Keep it to roughly 150 characters, and keep the three description strings identical.
+- `og:type` is `website` on index.html and `article` on conflict and organisation pages.
+- No `<link rel="canonical">` and no `og:url` are set anywhere: the root `.d8a` still has `# url:` commented out, so the site has no public address to point at. Add both in one pass when a URL exists.
+- New organisation pages start from templates/organisation.html, whose head block carries the tags with placeholder text and a comment explaining what to replace.
 
 Content schemas
 - data/conflict.schema.json — JSON Schema for a conflict entry: slug, title, summary, optional date range, regions, initiatives (name, organisation, description, sourceUrl), optional organisation ids, actions ("what a reader can do today", non-fundraising), sources, and a neutralityReviewed flag.

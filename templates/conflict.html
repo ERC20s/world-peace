@@ -1,0 +1,135 @@
+<!doctype html>
+<!--
+  Template for a per-conflict page.
+
+  How to use it:
+  1. Copy this file to conflicts/<slug>.html — the file name IS the schema's
+     "slug" field (lower-case, hyphenated, e.g. "northern-ireland").
+  2. Replace every placeholder below. Delete any comment you have satisfied.
+  3. Add the page to the list in index.html:
+       <li><a href="conflicts/<slug>.html">Title</a></li>
+  4. Work through the checklist in CONTRIBUTING.md before submitting.
+
+  Every block below is annotated with the field it fills in
+  data/conflict.schema.json. Required fields: slug, title, summary, regions,
+  initiatives, actions, sources, neutralityReviewed.
+
+  House rules: neutral tone, no advocacy, no fundraising, every claim sourced.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Replace with: "<Conflict title> — World Peace" (schema: "title") -->
+  <title>Conflict title — World Peace</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <!-- Display title of the conflict (schema: "title"), e.g. "Liberia" -->
+      <h1>Conflict title</h1>
+      <p class="tagline">Neutral, sourced summary of peace-building initiatives and organisations.</p>
+      <p><a href="../index.html">Back to home</a></p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <h2>Overview</h2>
+      <!--
+        Fills these schema fields:
+        - summary: short, neutral overview of the conflict and its current
+          peace-building status. State what happened, roughly when, and how it
+          was (or is being) addressed. Attribute contested figures to a source.
+        - regions: the countries or regions involved — name them in this text.
+        - dateRange (optional): the approximate active period, e.g. 1989–2003,
+          or "ongoing".
+        Keep it factual: no advocacy, no fundraising, no editorialising.
+      -->
+      <p>
+        Replace this paragraph with a neutral, sourced overview: the regions involved,
+        the approximate period of the conflict, and the peace process or peace-building
+        work that followed. Two to six sentences is enough. Attribute casualty or
+        displacement figures to the source that published them.
+      </p>
+    </section>
+
+    <section>
+      <h2>Initiatives and organisations</h2>
+      <!--
+        Fills the schema's "initiatives" array (minItems 1; this site's review
+        notes ask for AT LEAST THREE). Each entry needs all four required fields:
+        - name          — the initiative, in <strong>
+        - organisation  — who runs it; match an organisation page or
+                          data/organisation.schema.json entry where one exists
+        - description   — one or two neutral sentences on what it actually does
+        - sourceUrl     — a link that a reader can check; the <a> below is it
+        Prefer primary or institutional sources (UN, USIP, a named archive, the
+        organisation's own reporting) over news aggregation.
+        Optional schema field "organisations": if the initiative's organisation
+        has a page under content/organisations/, link its name to that page too.
+      -->
+      <ul>
+        <li>
+          <strong>Initiative name</strong> — run by <em>Organisation name</em>: one or two
+          neutral sentences describing what the initiative does and what it has achieved.
+          <a href="https://example.org/source-1">Source</a>.
+        </li>
+        <li>
+          <strong>Initiative name</strong> — run by <em>Organisation name</em>: one or two
+          neutral sentences describing what the initiative does and what it has achieved.
+          <a href="https://example.org/source-2">Source</a>.
+        </li>
+        <li>
+          <strong>Initiative name</strong> — run by <em>Organisation name</em>: one or two
+          neutral sentences describing what the initiative does and what it has achieved.
+          <a href="https://example.org/source-3">Source</a>.
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>What a reader can do today</h2>
+      <!--
+        Fills the schema's "actions" array (minItems 1). NON-FUNDRAISING ONLY:
+        read, learn, volunteer where an organisation lists opportunities, share
+        verified sources. Never ask for donations and never link a donate page.
+      -->
+      <ul>
+        <li>Read the organisations' websites and published reports to learn about their methods and impact.</li>
+        <li>Volunteer time or skills with local reconciliation and peacebuilding programmes where listed (contact organisations directly; this guidance is illustrative, not fundraising).</li>
+        <li>Share reputable sources and verified histories rather than unverified claims; consult the links below.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Sources</h2>
+      <!--
+        Fills the schema's "sources" array (minItems 1). Each source needs a
+        "url" and a "description" — here, the link text is the description.
+        List every source cited above, plus any further background reading.
+        Check each link resolves before submitting.
+      -->
+      <ul>
+        <li><a href="https://example.org/source-1">Publisher — what this source supports</a></li>
+        <li><a href="https://example.org/source-2">Publisher — what this source supports</a></li>
+        <li><a href="https://example.org/source-3">Publisher — what this source supports</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Content is neutral and sourced. See site home for license and contribution notes.</p>
+    </div>
+  </footer>
+
+  <!--
+    Last required field, "neutralityReviewed": set it by confirming, in the pull
+    request description, that you have read the page back and it contains no
+    advocacy or fundraising language.
+  -->
+  <script src="../js/main.js"></script>
+</body>
+</html>

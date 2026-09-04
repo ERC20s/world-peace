@@ -21,7 +21,18 @@
       <!-- Replace with the organisation's official name (see data/organisation.schema.json: "name") -->
       <h1>Organisation name</h1>
       <p class="tagline">Neutral, sourced summary of the organisation's mission and activities.</p>
-      <p><a href="../../index.html">Back to home</a></p>
+      <!--
+        Site nav — keep both links exactly as they are. From inside
+        content/organisations/ the home page is two levels up
+        (../../index.html) and the organisations index is the sibling
+        index.html. tools/validate-pages.js fails an organisation page that
+        has no sibling index.html link, and rejects the deeper shapes
+        ('../../content/organisations/index.html' and 'content/...').
+      -->
+      <nav class="site-nav" aria-label="Site">
+        <a href="../../index.html">Home</a> <span aria-hidden="true">·</span>
+        <a href="index.html">Organisations</a>
+      </nav>
     </div>
   </header>
 

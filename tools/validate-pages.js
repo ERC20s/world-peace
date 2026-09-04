@@ -65,6 +65,30 @@ function conflictLinkPathOk(href) {
   return h.startsWith('../../conflicts/') || h.startsWith('./../../conflicts/');
 }
 
+// True when the href points at the organisations index by any relative shape
+// ('content/organisations/index.html', '../content/...', '../../content/...').
+function looksLikeOrgIndexLink(href) {
+  return /(?:^|[\/.])content\/organisations\/index\.html?(?:[?#].*)?$/i
+    .test(String(href).trim());
+}
+
+// The only relative shape a conflict page (conflicts/<slug>.html) may use to
+// reach the organisations index: one level up, then content/organisations/.
+// 'content/organisations/index.html' (no step up) and the two-level
+// '../../content/...' form both resolve somewhere that does not exist.
+function conflictOrgIndexPathOk(href) {
+  const h = String(href).trim().replace(/[?#].*$/, '');
+  return h === '../content/organisations/index.html' ||
+         h === './../content/organisations/index.html';
+}
+
+// The only shape an organisation page may use to reach its own index: the bare
+// sibling file name, because the index sits in the same folder.
+function orgSiblingIndexOk(href) {
+  const h = String(href).trim().replace(/[?#].*$/, '').replace(/^\.\//, '');
+  return /^index\.html?$/i.test(h);
+}
+
 // Normalise a path to forward slashes so comparisons work on every platform.
 function toPosix(p) {
   return String(p).split(path.sep).join('/').replace(/\\/g, '/');
@@ -354,6 +378,42 @@ async function runChecks() {
           console.log('OK:', f, 'contains', what);
         }
       }
+
+      // Site nav: a reader who lands here from a search result must be able to
+      // reach the organisations index, and by the one-level-up path.
+      const navHrefs = extractHrefValues(txt).filter(h => !isExternalHref(h));
+      const orgIndexLinks = navHrefs.filter(looksLikeOrgIndexLink);
+      if (orgIndexLinks.length === 0) {
+        errors.push(
+          `${f} has no site-nav link to the organisations index ` +
+          `(expected href="../content/organisations/index.html")`
+        );
+        console.error('ERROR:', f, 'missing ../content/organisations/index.html nav link');
+      } else {
+        let anyOk = false;
+        for (const h of orgIndexLinks) {
+          if (!conflictOrgIndexPathOk(h)) {
+            errors.push(
+              `${f} links the organisations index as '${h}'; from conflicts/ it must be ` +
+              `../content/organisations/index.html`
+            );
+            console.error('ERROR:', f, 'organisations-index link', h, 'has the wrong depth');
+          } else {
+            anyOk = true;
+          }
+        }
+        if (anyOk) {
+          const orgIndexTarget = path.join('content', 'organisations', 'index.html');
+          if (!await fileExists(orgIndexTarget)) {
+            errors.push(
+              `${f} links ../content/organisations/index.html but ${toPosix(orgIndexTarget)} does not exist`
+            );
+            console.error('ERROR:', f, 'nav link target', toPosix(orgIndexTarget), 'does not exist');
+          } else {
+            console.log('OK:', f, 'links the organisations index');
+          }
+        }
+      }
     } catch (err) {
       errors.push(`Failed to read ${f}: ${err && err.message}`);
       console.error('ERROR: could not read', f, err && err.message);
@@ -409,6 +469,33 @@ async function runChecks() {
               console.log('OK:', f, 'conflict link', h);
             }
           }
+        }
+      }
+
+      // Site nav: every organisation page other than the index itself must link
+      // its own index, and by the sibling file name. The deeper shapes
+      // ('../../content/organisations/index.html', 'content/organisations/...')
+      // resolve outside this folder and are rejected on every page here.
+      const localHrefs = hrefs.filter(h => !isExternalHref(h));
+      for (const h of localHrefs) {
+        if (looksLikeOrgIndexLink(h)) {
+          errors.push(
+            `${f} links the organisations index as '${h}'; from content/organisations/ ` +
+            `it must be the sibling index.html`
+          );
+          console.error('ERROR:', f, 'organisations-index link', h, 'has the wrong depth');
+        }
+      }
+      const isOrgIndexPage = /^index\.html?$/i
+        .test(toPosix(f).replace(/^content\/organisations\//, ''));
+      if (!isOrgIndexPage) {
+        if (!localHrefs.some(orgSiblingIndexOk)) {
+          errors.push(
+            `${f} has no site-nav link to its organisations index (expected href="index.html")`
+          );
+          console.error('ERROR:', f, 'missing sibling index.html nav link');
+        } else {
+          console.log('OK:', f, 'links its organisations index');
         }
       }
     } catch (err) {

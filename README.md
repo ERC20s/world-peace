@@ -16,6 +16,7 @@ Conflict pages
 
 Organisation pages
 - templates/organisation.html — reusable, commented template for a plain-HTML organisation page (name, country/mission, verifiable activities, links to conflict pages, non-fundraising actions, sources).
+- content/organisations/index.html — the organisations directory: every organisation page is listed there, with the conflict pages it relates to. The home page links it under "Organisations", and tools/validate-pages.js fails on an organisation page the index does not list.
 - content/organisations/example-organisation.html — worked example filled with placeholder content, matching data/examples/organisation-example.json.
 - Organisation pages live two levels below the repository root (content/organisations/<slug>.html), so their relative paths use two steps — ../../css/styles.css, ../../js/main.js, ../../index.html and ../../conflicts/<slug>.html — unlike conflict pages, which use one. The template already carries the two-level paths, which is why it looks unstyled if opened straight from templates/.
 

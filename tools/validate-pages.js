@@ -99,11 +99,31 @@ function pageText(html) {
     .toLowerCase();
 }
 
-// Pull the <li> items out of <ul id="conflict-list"> in index.html.
+// Normalise a home-page href to the organisations index it points at, or null.
+// 'content/organisations/index.html' and './content/organisations/index.html'
+// both count; a query or fragment is ignored.
+function homeOrganisationsIndexHref(href) {
+  const h = String(href).trim().replace(/[?#].*$/, '').replace(/^\.\//, '');
+  return /^content\/organisations\/index\.html?$/i.test(h) ? h : null;
+}
+
+// Normalise an href found in the organisations index to the sibling page it
+// points at, or null. Organisation pages live beside the index, so the only
+// accepted shape is a bare file name ('example-organisation.html'); anything
+// with a slash (../../conflicts/..., http://...) is not an organisation link.
+function organisationIndexHref(href) {
+  const h = String(href).trim().replace(/[?#].*$/, '').replace(/^\.\//, '');
+  if (!/^[A-Za-z0-9._-]+\.html?$/i.test(h)) return null;
+  return h;
+}
+
+// Pull the <li> items out of the <ul id="..."> with the given id.
 // Returns null when that list is not present. Each item is
 // { attrs: '<li ...>' attribute text, html: inner HTML }.
-function conflictListItems(text) {
-  const ulOpen = /<ul\b[^>]*\bid\s*=\s*(?:"conflict-list"|'conflict-list'|conflict-list\b)[^>]*>/i.exec(text);
+function listItemsById(text, id) {
+  const ulOpen = new RegExp(
+    '<ul\\b[^>]*\\bid\\s*=\\s*(?:"' + id + '"|\'' + id + '\'|' + id + '\\b)[^>]*>', 'i'
+  ).exec(text);
   if (!ulOpen) return null;
   const listStart = ulOpen.index + ulOpen[0].length;
   const closeIdx = text.toLowerCase().indexOf('</ul>', listStart);
@@ -114,6 +134,16 @@ function conflictListItems(text) {
   let m;
   while ((m = liRe.exec(inner)) !== null) items.push({ attrs: m[1], html: m[2] });
   return items;
+}
+
+// The home-page conflict list.
+function conflictListItems(text) {
+  return listItemsById(text, 'conflict-list');
+}
+
+// The directory list on content/organisations/index.html.
+function organisationListItems(text) {
+  return listItemsById(text, 'organisation-list');
 }
 
 // Collapse a list item's HTML to a short readable label for error messages.
@@ -384,6 +414,104 @@ async function runChecks() {
     } catch (err) {
       errors.push(`Failed to read ${f}: ${err && err.message}`);
       console.error('ERROR: could not read', f, err && err.message);
+    }
+  }
+
+  // 4) The organisations index: content/organisations/index.html is the only way
+  // a reader reaches an organisation page, so it must exist, be linked from the
+  // home page, and list every organisation page in the folder — exactly the
+  // guarantee the conflict list already gives conflict pages.
+  const orgIndexPath = path.join('content', 'organisations', 'index.html');
+  const orgIndexPosix = toPosix(orgIndexPath);
+  const orgIndexExists = await fileExists(orgIndexPath);
+
+  if (!orgIndexExists) {
+    errors.push(`${orgIndexPosix} is missing: organisation pages have no index to be reached from`);
+    console.error('ERROR:', orgIndexPosix, 'does not exist');
+  } else {
+    console.log('OK:', orgIndexPosix, 'exists');
+  }
+
+  // 4a) Home page must link the index.
+  if (indexTxt !== null) {
+    const linksOrgIndex = extractHrefValues(indexTxt).some(h => homeOrganisationsIndexHref(h));
+    if (!linksOrgIndex) {
+      errors.push(`index.html does not link ${orgIndexPosix}`);
+      console.error('ERROR: index.html has no link to', orgIndexPosix);
+    } else {
+      console.log('OK: index.html links', orgIndexPosix);
+    }
+  }
+
+  // 4b) The index's own list: every entry points at a real sibling page, no
+  // duplicates, and no organisation page in the folder is left off it.
+  if (orgIndexExists) {
+    try {
+      const orgIndexTxt = await fs.readFile(orgIndexPath, 'utf8');
+      const items = organisationListItems(orgIndexTxt);
+      const listed = new Set();
+
+      if (items === null) {
+        errors.push(`${orgIndexPosix} has no <ul id="organisation-list"> list`);
+        console.error('ERROR:', orgIndexPosix, 'missing <ul id="organisation-list">');
+      } else if (items.length === 0) {
+        errors.push(`${orgIndexPosix} has an empty <ul id="organisation-list"> list`);
+        console.error('ERROR:', orgIndexPosix, 'organisation list has no <li> items');
+      } else {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const label = itemLabel(item.html) || `list item ${i + 1}`;
+          const targets = extractHrefValues(item.html)
+            .map(organisationIndexHref)
+            .filter(Boolean)
+            .filter(h => !/^index\.html?$/i.test(h));
+
+          if (targets.length !== 1) {
+            errors.push(
+              `${orgIndexPosix} list item "${label}" must contain exactly one link to an ` +
+              `organisation page in this folder (found ${targets.length})`
+            );
+            console.error('ERROR:', orgIndexPosix, 'list item', label, 'has', targets.length, 'organisation links');
+            continue;
+          }
+
+          const target = targets[0];
+          if (listed.has(target)) {
+            errors.push(`${orgIndexPosix} lists ${target} more than once`);
+            console.error('ERROR:', orgIndexPosix, 'duplicate organisation link', target);
+            continue;
+          }
+          listed.add(target);
+
+          const targetPath = path.join('content', 'organisations', target);
+          if (!await fileExists(targetPath)) {
+            errors.push(`${orgIndexPosix} links to ${target} but ${toPosix(targetPath)} does not exist`);
+            console.error('ERROR:', orgIndexPosix, 'link', target, 'not found at', toPosix(targetPath));
+          } else {
+            console.log('OK:', orgIndexPosix, 'lists', target);
+          }
+        }
+      }
+
+      // Orphan check: an organisation page the index does not list is invisible.
+      for (const f of orgFiles) {
+        const rel = toPosix(f).replace(/^content\/organisations\//, '');
+        if (/^index\.html?$/i.test(rel)) continue;
+        if (rel.indexOf('/') !== -1) {
+          errors.push(`${toPosix(f)} is not directly under content/organisations/, so the index cannot list it`);
+          console.error('ERROR:', toPosix(f), 'is nested below content/organisations/');
+          continue;
+        }
+        if (!listed.has(rel)) {
+          errors.push(`${toPosix(f)} exists but is not listed in ${orgIndexPosix}`);
+          console.error('ERROR:', toPosix(f), 'is not listed in', orgIndexPosix);
+        } else {
+          console.log('OK:', toPosix(f), 'is listed in', orgIndexPosix);
+        }
+      }
+    } catch (err) {
+      errors.push(`Failed to read ${orgIndexPosix}: ${err && err.message}`);
+      console.error('ERROR: could not read', orgIndexPosix, err && err.message);
     }
   }
 

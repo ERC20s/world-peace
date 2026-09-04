@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Organisations — World Peace</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1>Organisations</h1>
+      <p class="tagline">Neutral, sourced pages on the organisations named in our conflict pages.</p>
+      <p><a href="../../index.html">Back to home</a></p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <p>Every organisation page in this repository is listed below. Each page describes what the
+        organisation does, links the conflict pages that reference it, and cites a published source for
+        each activity. A page that is not in this list is unreachable for readers, so
+        <code>node tools/validate-pages.js</code> fails on any file under
+        <code>content/organisations/</code> that this list does not link.</p>
+    </section>
+
+    <section>
+      <h2>All organisations</h2>
+      <!-- One <li> per organisation page in this folder. The link is the file name
+           only (organisation pages are siblings of this index); name the conflict
+           pages the organisation relates to with ../../conflicts/<slug>.html links.
+           See CONTRIBUTING.md, "Adding an organisation page". -->
+      <ul id="organisation-list" class="conflict-list">
+        <li><a href="example-organisation.html">Example Reconciliation Trust</a> — worked example page
+          showing the fields every organisation page fills. It is a template, not a real body, so it is
+          tied to no conflict page; a real entry names its conflicts here, for example
+          <a href="../../conflicts/northern-ireland.html">Northern Ireland</a> or
+          <a href="../../conflicts/liberia.html">Liberia</a>.</li>
+      </ul>
+      <p class="muted">Real organisation pages are added alongside the conflict pages that cite them.
+        To add one, copy <code>templates/organisation.html</code> to
+        <code>content/organisations/&lt;slug&gt;.html</code> and add a line to the list above.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Content is neutral and sourced. See site home for license and contribution notes.</p>
+    </div>
+  </footer>
+
+  <script src="../../js/main.js"></script>
+</body>
+</html>

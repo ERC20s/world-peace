@@ -48,6 +48,23 @@ fill it in the same way; the fields are listed in
 `content/organisations/example-organisation.html` is a worked example. Link the
 page from the conflict pages that reference the organisation.
 
+Then list it in the organisations index, `content/organisations/index.html`,
+which the home page links under "Organisations". Inside
+`<ul id="organisation-list" class="conflict-list">` add one line:
+
+```html
+<li><a href="<slug>.html">Organisation name</a> — one neutral line, and the
+  conflict pages it relates to: <a href="../../conflicts/<slug>.html">Title</a>.</li>
+```
+
+The organisation link is the bare file name (the pages are siblings of the
+index); conflict links keep the two-level `../../conflicts/` form. A page the
+index does not list is unreachable for readers, so
+`node tools/validate-pages.js` fails on any file under
+`content/organisations/` (other than the index itself) that the list does not
+link, on a list entry pointing at a file that does not exist, and on the same
+page listed twice.
+
 Organisation pages sit **two** directory levels below the repository root, so
 their relative paths carry two `../` steps — one more than a conflict page. The
 template ships with the two-level paths already in place; do not "fix" them back
@@ -63,6 +80,10 @@ Tick every line before you open the pull request. Reviewers check the same list.
       `../../css/styles.css`, `../../js/main.js`, `../../index.html`,
       `../../conflicts/<slug>.html`. Compare against
       `content/organisations/example-organisation.html`.
+- [ ] The page is listed in `content/organisations/index.html`, inside
+      `<ul id="organisation-list">`, with a bare-file-name link and the conflict
+      pages it relates to. The validator fails an organisation page the index
+      does not list.
 - [ ] The `<title>` reads "<Organisation name> — World Peace".
 - [ ] Country/region, official website and a short neutral mission are filled in,
       matching `data/organisation.schema.json`.

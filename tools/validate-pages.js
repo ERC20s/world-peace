@@ -47,6 +47,59 @@ function isoDatePresent(text) {
   return /Sources last checked:\s*\d{4}-\d{2}-\d{2}/.test(text);
 }
 
+// True when the href points at an external source: http://, https:// or //host.
+function isExternalHref(href) {
+  return /^\s*(?:https?:)?\/\//i.test(String(href));
+}
+
+// True when the href points at a page under conflicts/ (any relative shape).
+function looksLikeConflictLink(href) {
+  return /(?:^|[\/.])conflicts\/[^\/]+\.html?(?:[?#].*)?$/i.test(String(href).trim());
+}
+
+// The only relative shapes an organisation page (content/organisations/<slug>.html)
+// may use to reach a conflict page. '../conflicts/' is one level short and is
+// rejected: it resolves to content/conflicts/, which does not exist.
+function conflictLinkPathOk(href) {
+  const h = String(href).trim();
+  return h.startsWith('../../conflicts/') || h.startsWith('./../../conflicts/');
+}
+
+// Collapse a list item's HTML to a short readable label for error messages.
+function itemLabel(html) {
+  const text = String(html)
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&[a-z]+;|&#\d+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length > 80 ? text.slice(0, 77) + '...' : text;
+}
+
+// Pull the <li> items out of the first <ul> that follows the
+// "Initiatives and organisations" <h2> on a conflict page.
+// Returns null when the section (or its list) is not present.
+function initiativeListItems(text) {
+  const heading = /<h2[^>]*>\s*Initiatives and organisations\s*<\/h2>/i.exec(text);
+  if (!heading) return null;
+
+  // Only look inside this section: stop at the next <h2>.
+  let section = text.slice(heading.index + heading[0].length);
+  const nextHeading = section.search(/<h2\b/i);
+  if (nextHeading !== -1) section = section.slice(0, nextHeading);
+
+  const ulOpen = /<ul\b[^>]*>/i.exec(section);
+  if (!ulOpen) return null;
+  const listStart = ulOpen.index + ulOpen[0].length;
+  const closeIdx = section.toLowerCase().indexOf('</ul>', listStart);
+  const inner = closeIdx === -1 ? section.slice(listStart) : section.slice(listStart, closeIdx);
+
+  const items = [];
+  const liRe = /<li\b[^>]*>([\s\S]*?)<\/li>/gi;
+  let m;
+  while ((m = liRe.exec(inner)) !== null) items.push(m[1]);
+  return items;
+}
+
 async function runChecks() {
   const errors = [];
 
@@ -88,6 +141,29 @@ async function runChecks() {
       } else {
         console.log('OK:', f, 'has sources-checked date');
       }
+
+      // Every initiative listed must carry at least one external http(s) source link.
+      const initiatives = initiativeListItems(txt);
+      if (initiatives === null) {
+        errors.push(`${f} has no "Initiatives and organisations" section with a <ul> list`);
+        console.error('ERROR:', f, 'missing "Initiatives and organisations" list');
+      } else if (initiatives.length === 0) {
+        errors.push(`${f} has an empty "Initiatives and organisations" list`);
+        console.error('ERROR:', f, '"Initiatives and organisations" list has no <li> items');
+      } else {
+        initiatives.forEach((li, i) => {
+          const sourced = extractHrefValues(li).some(isExternalHref);
+          if (!sourced) {
+            const label = itemLabel(li) || '(empty list item)';
+            errors.push(
+              `${f} initiative ${i + 1} has no external http(s) source link: "${label}"`
+            );
+            console.error('ERROR:', f, `initiative ${i + 1} has no source link:`, label);
+          } else {
+            console.log('OK:', f, `initiative ${i + 1} is sourced`);
+          }
+        });
+      }
     } catch (err) {
       errors.push(`Failed to read ${f}: ${err && err.message}`);
       console.error('ERROR: could not read', f, err && err.message);
@@ -124,17 +200,24 @@ async function runChecks() {
       } else {
         console.log('OK:', f, 'contains ../../index.html link');
       }
-      // Check conflict links use ../../conflicts/
+      // Check conflict links use the two-level path '../../conflicts/'.
+      // '../conflicts/' resolves to content/conflicts/ and is now rejected.
       const hrefs = extractHrefValues(txt);
       for (const h of hrefs) {
-        // if it links to a conflicts page, ensure it uses '../../conflicts/'
-        if (/\bconflicts\/.*\.html$/.test(h)) {
-          if (!h.includes('../../conflicts/') && !h.includes('./../../conflicts/') && !h.includes('../conflicts/') ) {
-            // conservative: require '../../conflicts/' presence specifically
-            errors.push(`${f} contains a conflicts link '${h}' which should use ../../conflicts/ relative path`);
-            console.error('ERROR:', f, 'conflicts link', h, 'should use ../../conflicts/');
+        if (isExternalHref(h)) continue;
+        if (looksLikeConflictLink(h)) {
+          if (!conflictLinkPathOk(h)) {
+            errors.push(`${f} contains a conflicts link '${h}' which must start with ../../conflicts/`);
+            console.error('ERROR:', f, 'conflicts link', h, 'must start with ../../conflicts/');
           } else {
-            console.log('OK:', f, 'conflict link', h);
+            const slug = h.trim().replace(/^(?:\.\/)?\.\.\/\.\.\/conflicts\//, '').replace(/[?#].*$/, '');
+            const target = path.join('conflicts', slug);
+            if (!await fileExists(target)) {
+              errors.push(`${f} links to ${h} but ${target} does not exist`);
+              console.error('ERROR:', f, 'conflict link', h, 'not found at', target);
+            } else {
+              console.log('OK:', f, 'conflict link', h);
+            }
           }
         }
       }

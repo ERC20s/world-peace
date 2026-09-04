@@ -75,6 +75,9 @@ Tick every line before you open the pull request. Reviewers check the same list.
       published them.
 - [ ] Sources section lists every source cited above.
 - [ ] Every external link resolves (open each one; no 404s, no parked domains).
+- [ ] `node tools/validate-pages.js` exits 0. The validator rejects `../conflicts/`
+      (one level short — it resolves to `content/conflicts/`) and fails if a linked
+      `../../conflicts/<slug>.html` page does not exist in the repository.
 
 ## Pre-submit checklist (conflict pages)
 
@@ -86,6 +89,9 @@ Tick every line before you open the pull request. Reviewers check the same list.
       years) — no promotional or partisan wording. Type two of them into the search
       box and check the page still shows.
 - [ ] At least three initiatives, each with an organisation named and a working source link.
+- [ ] The page has an "Initiatives and organisations" `<h2>` followed by a `<ul>`, and
+      every `<li>` in that list carries at least one external `http(s)` link.
+      `node tools/validate-pages.js` fails on any initiative without one.
 - [ ] Every external link resolves (open each one; no 404s, no redirects to a parked domain).
 - [ ] Relative paths are correct from inside `conflicts/`: `../css/styles.css`,
       `../js/main.js`, `../index.html`.

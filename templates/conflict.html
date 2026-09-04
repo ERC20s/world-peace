@@ -30,7 +30,17 @@
       <!-- Display title of the conflict (schema: "title"), e.g. "Liberia" -->
       <h1>Conflict title</h1>
       <p class="tagline">Neutral, sourced summary of peace-building initiatives and organisations.</p>
-      <p><a href="../index.html">Back to home</a></p>
+      <!--
+        Site nav — keep both links exactly as they are. From inside conflicts/
+        the home page is one level up (../index.html) and the organisations
+        index is ../content/organisations/index.html. tools/validate-pages.js
+        fails a page under conflicts/ that has no ../content/organisations/index.html
+        link, and rejects the wrong depths ('content/...', '../../content/...').
+      -->
+      <nav class="site-nav" aria-label="Site">
+        <a href="../index.html">Home</a> <span aria-hidden="true">·</span>
+        <a href="../content/organisations/index.html">Organisations</a>
+      </nav>
     </div>
   </header>
 

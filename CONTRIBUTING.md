@@ -80,6 +80,20 @@ Tick every line before you open the pull request. Reviewers check the same list.
       `../../css/styles.css`, `../../js/main.js`, `../../index.html`,
       `../../conflicts/<slug>.html`. Compare against
       `content/organisations/example-organisation.html`.
+- [ ] The header carries the site nav the template ships, unchanged:
+
+      ```html
+      <nav class="site-nav" aria-label="Site">
+        <a href="../../index.html">Home</a> <span aria-hidden="true">·</span>
+        <a href="index.html">Organisations</a>
+      </nav>
+      ```
+
+      The organisations link is the bare sibling `index.html`. The validator
+      fails an organisation page (other than the index itself) that has no
+      sibling `index.html` link, and rejects the deeper shapes
+      `../../content/organisations/index.html` and
+      `content/organisations/index.html` on any page in this folder.
 - [ ] The page is listed in `content/organisations/index.html`, inside
       `<ul id="organisation-list">`, with a bare-file-name link and the conflict
       pages it relates to. The validator fails an organisation page the index
@@ -123,6 +137,20 @@ Tick every line before you open the pull request. Reviewers check the same list.
 - [ ] Relative paths are correct from inside `conflicts/`: `../css/styles.css`,
       `../js/main.js`, `../index.html`. The validator checks all three and rejects
       the two-level `../../` forms, which resolve above the repository root.
+- [ ] The header carries the site nav the template ships, unchanged:
+
+      ```html
+      <nav class="site-nav" aria-label="Site">
+        <a href="../index.html">Home</a> <span aria-hidden="true">·</span>
+        <a href="../content/organisations/index.html">Organisations</a>
+      </nav>
+      ```
+
+      Readers arrive on a conflict page directly (search results carry `?q=…`),
+      so a page whose only exit is the home page is a dead end. The validator
+      fails a page under `conflicts/` with no
+      `../content/organisations/index.html` link, and rejects the wrong depths
+      (`content/organisations/index.html`, `../../content/organisations/index.html`).
 - [ ] A "What a reader can do today" section with non-fundraising actions only —
       read, learn, volunteer, share verified sources. No donate links, no appeals.
 - [ ] Neutral tone throughout: no advocacy, no partisan framing; contested facts

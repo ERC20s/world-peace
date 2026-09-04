@@ -10,6 +10,11 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;
 .conflict-list{list-style:none;padding:0;margin:0}
 .conflict-list li{margin:.5rem 0}
 .muted{color:var(--muted);font-size:0.95rem}
+/* Site nav in the header of every conflict and organisation page. */
+.site-nav{margin:.25rem 0 0;font-size:0.95rem}
+.site-nav a{color:#0b5fff}
+.site-nav span{color:var(--muted);margin:0 .15rem}
+.site-nav a[aria-current=page]{color:var(--muted);text-decoration:none}
 .search-status{margin:.25rem 0 .5rem}
 .search-status[hidden]{display:none}
 .site-footer{border-top:1px solid #e1e4e8;padding:1rem;background:#fff;color:var(--muted);margin-top:2rem}

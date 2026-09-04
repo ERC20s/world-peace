@@ -111,6 +111,7 @@ Tick every line before you open the pull request. Reviewers check the same list.
       published them.
 - [ ] Sources section lists every source cited above.
 - [ ] Every external link resolves (open each one; no 404s, no parked domains).
+      `node tools/check-links.js` exits 0 — see "Checking external links" below.
 - [ ] `node tools/validate-pages.js` exits 0. The validator rejects `../conflicts/`
       (one level short — it resolves to `content/conflicts/`) and fails if a linked
       `../../conflicts/<slug>.html` page does not exist in the repository.
@@ -134,6 +135,7 @@ Tick every line before you open the pull request. Reviewers check the same list.
       every `<li>` in that list carries at least one external `http(s)` link.
       `node tools/validate-pages.js` fails on any initiative without one.
 - [ ] Every external link resolves (open each one; no 404s, no redirects to a parked domain).
+      `node tools/check-links.js` exits 0 — see "Checking external links" below.
 - [ ] Relative paths are correct from inside `conflicts/`: `../css/styles.css`,
       `../js/main.js`, `../index.html`. The validator checks all three and rejects
       the two-level `../../` forms, which resolve above the repository root.
@@ -162,6 +164,38 @@ Tick every line before you open the pull request. Reviewers check the same list.
 - [ ] The `<title>` reads "<Conflict title> — World Peace".
 - [ ] You state in the pull request that you have read the page back for
       neutrality (`neutralityReviewed`).
+
+## Checking external links
+
+Every claim on this site rests on a source link, so run the checker before you
+open a pull request:
+
+```
+node tools/check-links.js          # report; fails only on genuinely broken links
+node tools/check-links.js --strict # also fail when a URL could not be reached
+```
+
+It scans `conflicts/` and `content/organisations/`, collects every external
+`http(s)` href, and checks each **unique** URL once however many pages cite it —
+a source listed under "Initiatives and organisations" and again under "Sources"
+is one request, not two. Each URL is tried with `HEAD` first; on any status of
+400 or above the same URL is retried with `GET` (many source hosts refuse `HEAD`
+from a script while serving the page normally), and only then judged.
+
+Results come back in three kinds:
+
+- `OK` — HEAD or the GET retry answered 2xx/3xx.
+- `BROKEN` — a real 4xx/5xx that survived the GET retry. Fix or replace the
+  source before submitting.
+- `UNREACHABLE` — DNS failure, refused connection, timeout or a 429 rate limit,
+  after one automatic retry. This means the network could not answer, not that
+  the source is gone.
+
+Exit codes: `0` clean (or unreachable-only), `2` broken links found (and, with
+`--strict`, unreachable ones too), `3` the script itself failed. So running the
+checker offline warns rather than declaring every verified source dead; CI or a
+release check should use `--strict`. The same command runs as the `link-check`
+entry in `.d8a`.
 
 ## Tone rules, in short
 

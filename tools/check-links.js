@@ -1,7 +1,18 @@
 #!/usr/bin/env node
 // Simple no-dependency link checker for ERC20s/world-peace
 // Scans conflicts/ and content/organisations/ for external http(s) links.
-// Usage: node tools/check-links.js
+//
+// Usage: node tools/check-links.js [--strict]
+//
+// Every URL is checked ONCE, however many pages cite it (the same source is
+// normally cited twice on a conflict page: once under "Initiatives and
+// organisations" and again under "Sources"). Each result is one of three:
+//   ok          - HEAD, or a GET retry, answered 2xx/3xx
+//   broken      - a real 4xx/5xx that survived the GET retry -> exit 2
+//   unreachable - DNS / connection / timeout / 429 rate-limit, after one retry
+//                 -> a warning; exit 0 unless --strict is passed
+// The split matters because running the check offline (or behind a captive
+// portal) must not report every verified source as broken.
 
 const fs = require('fs').promises;
 const path = require('path');
@@ -12,6 +23,23 @@ const { URL } = require('url');
 const TIMEOUT = 10000; // 10s
 const MAX_REDIRECTS = 5;
 const CONCURRENCY = 6;
+const RETRY_DELAY = 1500; // ms, before the single retry of an unreachable URL
+
+const STRICT = process.argv.slice(2).includes('--strict');
+
+const USER_AGENT = 'world-peace-link-checker/2.0 (+https://github.com/ERC20s/world-peace)';
+const ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+
+// Transport-level failures: the network could not answer, which says nothing
+// about whether the source is still published.
+const TRANSPORT_CODES = new Set([
+  'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT',
+  'EHOSTUNREACH', 'ENETUNREACH', 'EPIPE', 'ECONNABORTED', 'EADDRNOTAVAIL'
+]);
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function listHtmlFiles(dir) {
   const out = [];
@@ -63,67 +91,116 @@ function isLikelyAsset(url) {
   return /\.(css|js|png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf)(\?|$)/i.test(url);
 }
 
+// One URL, one identity: protocol-relative hrefs become https, the fragment is
+// dropped (servers never see it) and a bare host gets its "/" back, so the same
+// source cited in two places is fetched once.
+function normaliseUrl(raw) {
+  let candidate = raw;
+  if (/^\/\//.test(candidate)) candidate = 'https:' + candidate;
+  try {
+    const u = new URL(candidate);
+    u.hash = '';
+    if (!u.pathname) u.pathname = '/';
+    return u.toString();
+  } catch (err) {
+    return candidate;
+  }
+}
+
 function requestOnce(u, method, timeout, redirectsLeft) {
   return new Promise((resolve, reject) => {
-    const parsed = new URL(u);
+    let parsed;
+    try {
+      parsed = new URL(u);
+    } catch (err) {
+      reject(Object.assign(new Error('invalid URL'), { code: 'ERR_INVALID_URL' }));
+      return;
+    }
     const lib = parsed.protocol === 'https:' ? https : http;
+    const headers = { 'user-agent': USER_AGENT };
+    if (method === 'GET') headers.accept = ACCEPT;
     const opts = {
       method,
       hostname: parsed.hostname,
       port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
-      path: parsed.pathname + (parsed.search || ''),
-      headers: { 'user-agent': 'world-peace-link-checker/1.0' }
+      path: (parsed.pathname || '/') + (parsed.search || ''),
+      headers
     };
     const req = lib.request(opts, (res) => {
-      const { statusCode, headers } = res;
+      const { statusCode, headers: resHeaders } = res;
       // follow redirects
-      if (statusCode >= 300 && statusCode < 400 && headers.location && redirectsLeft > 0) {
-        // build absolute redirect URL
-        const next = new URL(headers.location, parsed).toString();
-        // consume and follow
+      if (statusCode >= 300 && statusCode < 400 && resHeaders.location && redirectsLeft > 0) {
+        const next = new URL(resHeaders.location, parsed).toString();
         res.resume();
+        req.destroy();
         resolve(requestOnce(next, method, timeout, redirectsLeft - 1));
         return;
       }
       // consume any body then resolve
       res.on('data', () => {});
-      res.on('end', () => resolve({ statusCode, headers }));
+      res.on('end', () => resolve({ statusCode, headers: resHeaders, finalUrl: parsed.toString() }));
+      res.on('error', (err) => reject(err));
     });
     req.on('error', (err) => reject(err));
     req.setTimeout(timeout, () => {
-      req.abort();
-      reject(new Error('timeout'));
+      req.destroy();
+      reject(Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' }));
     });
     req.end();
   });
 }
 
-async function checkUrl(rawUrl) {
-  // try HEAD, fallback to GET on 405/501 or on request error
+function unreachableFromError(err) {
+  const code = (err && err.code) || '';
+  const detail = code || (err && err.message) || 'error';
+  if (code === 'ERR_INVALID_URL') {
+    return { state: 'broken', status: 'invalid URL' };
+  }
+  if (TRANSPORT_CODES.has(code) || /timeout|socket hang up|network/i.test((err && err.message) || '')) {
+    return { state: 'unreachable', status: detail };
+  }
+  // TLS failures and anything unclassified: report as unreachable rather than
+  // accusing a source of being dead when the fault may be local.
+  return { state: 'unreachable', status: detail };
+}
+
+// HEAD first (cheap); on ANY status >= 400 retry the same URL with GET, because
+// CDN and bot-protected hosts routinely answer HEAD with 403/405/429 while
+// serving the page perfectly well to a reader.
+async function attemptUrl(rawUrl) {
+  let headErr = null;
   try {
     const headRes = await requestOnce(rawUrl, 'HEAD', TIMEOUT, MAX_REDIRECTS);
-    if (headRes && headRes.statusCode >= 200 && headRes.statusCode < 400) return { ok: true, status: headRes.statusCode };
-    if (headRes && (headRes.statusCode === 405 || headRes.statusCode === 501 || headRes.statusCode === 400)) {
-      // fallback to GET
-      const getRes = await requestOnce(rawUrl, 'GET', TIMEOUT, MAX_REDIRECTS);
-      if (getRes && getRes.statusCode >= 200 && getRes.statusCode < 400) return { ok: true, status: getRes.statusCode };
-      return { ok: false, status: getRes ? getRes.statusCode : 'error' };
+    if (headRes.statusCode >= 200 && headRes.statusCode < 400) {
+      return { state: 'ok', status: headRes.statusCode, method: 'HEAD' };
     }
-    // other non-success from HEAD is considered failure
-    return { ok: headRes && headRes.statusCode < 400, status: headRes ? headRes.statusCode : 'error' };
   } catch (err) {
-    // on error, try GET as a fallback once
-    if (err && err.message !== 'timeout') {
-      try {
-        const getRes = await requestOnce(rawUrl, 'GET', TIMEOUT, MAX_REDIRECTS);
-        if (getRes && getRes.statusCode >= 200 && getRes.statusCode < 400) return { ok: true, status: getRes.statusCode };
-        return { ok: false, status: getRes ? getRes.statusCode : err.message };
-      } catch (err2) {
-        return { ok: false, status: err2.message || 'error' };
-      }
-    }
-    return { ok: false, status: err.message || 'timeout' };
+    headErr = err;
+    if (err && err.code === 'ERR_INVALID_URL') return { state: 'broken', status: 'invalid URL' };
   }
+
+  try {
+    const getRes = await requestOnce(rawUrl, 'GET', TIMEOUT, MAX_REDIRECTS);
+    if (getRes.statusCode >= 200 && getRes.statusCode < 400) {
+      return { state: 'ok', status: getRes.statusCode, method: 'GET' };
+    }
+    if (getRes.statusCode === 429) {
+      return { state: 'unreachable', status: '429 rate-limited', method: 'GET' };
+    }
+    return { state: 'broken', status: getRes.statusCode, method: 'GET' };
+  } catch (err) {
+    return Object.assign(unreachableFromError(err || headErr), { method: 'GET' });
+  }
+}
+
+// An unreachable answer is retried once: a single dropped connection or one
+// burst of rate limiting should not colour the report.
+async function checkUrl(rawUrl) {
+  const first = await attemptUrl(rawUrl);
+  if (first.state !== 'unreachable') return first;
+  await sleep(RETRY_DELAY);
+  const second = await attemptUrl(rawUrl);
+  return Object.assign(second, { retried: true });
 }
 
 async function run() {
@@ -132,16 +209,15 @@ async function run() {
   for (const d of dirs) {
     files.push(...await listHtmlFiles(d));
   }
-  // also include a likely example file if present
-  const example = path.join('content', 'organisations', 'example-organisation.html');
-  try { await fs.access(example); files.push(example); } catch (e) {}
 
   if (!files.length) {
     console.log('No HTML files found to scan in conflicts/ or content/organisations/.');
     process.exit(0);
   }
 
-  const linkEntries = [];
+  // URL -> the files that cite it. Checking is per URL; reporting is per file.
+  const citations = new Map();
+  let hrefCount = 0;
   for (const f of files) {
     try {
       const links = await findLinksInFile(f);
@@ -149,40 +225,56 @@ async function run() {
         const url = l.url.trim();
         if (!isExternalHttp(url)) continue;
         if (isLikelyAsset(url)) continue;
-        // skip mailto/tel etc already filtered by isExternalHttp
-        linkEntries.push({ file: f, url });
+        const key = normaliseUrl(url);
+        hrefCount++;
+        if (!citations.has(key)) citations.set(key, new Set());
+        citations.get(key).add(f);
       }
     } catch (err) {
       console.error('Failed reading', f, err.message || err);
     }
   }
 
-  if (!linkEntries.length) {
+  const urls = [...citations.keys()];
+  if (!urls.length) {
     console.log('No external HTTP(S) links found in the scanned files.');
     process.exit(0);
   }
 
-  console.log('Found', linkEntries.length, 'external links. Checking with up to', CONCURRENCY, 'concurrent requests.');
+  console.log(
+    'Found', hrefCount, 'external link' + (hrefCount === 1 ? '' : 's') + ' ->',
+    urls.length, 'unique URL' + (urls.length === 1 ? '' : 's') + '. Checking with up to',
+    CONCURRENCY, 'concurrent requests.'
+  );
 
   let idx = 0;
-  let failures = [];
+  const broken = [];
+  const unreachable = [];
+  let okCount = 0;
+
+  const citedBy = (url) => [...citations.get(url)].sort().join(', ');
 
   async function worker() {
     while (true) {
       const i = idx++;
-      if (i >= linkEntries.length) return;
-      const item = linkEntries[i];
+      if (i >= urls.length) return;
+      const url = urls[i];
+      let res;
       try {
-        const res = await checkUrl(item.url);
-        if (!res.ok) {
-          failures.push({ file: item.file, url: item.url, status: res.status });
-          console.log('BROKEN:', item.file, '->', item.url, 'status:', res.status);
-        } else {
-          console.log('OK:', item.url, '(', res.status, ')');
-        }
+        res = await checkUrl(url);
       } catch (err) {
-        failures.push({ file: item.file, url: item.url, status: err.message || 'error' });
-        console.log('ERROR:', item.file, '->', item.url, err.message || err);
+        res = { state: 'unreachable', status: (err && err.message) || 'error' };
+      }
+      const where = citedBy(url);
+      if (res.state === 'ok') {
+        okCount++;
+        console.log('OK:', url, '(', res.status, 'via', res.method || 'HEAD', ')');
+      } else if (res.state === 'broken') {
+        broken.push({ url, status: res.status, files: where });
+        console.log('BROKEN:', url, 'status:', res.status, '- cited by', where);
+      } else {
+        unreachable.push({ url, status: res.status, files: where });
+        console.log('UNREACHABLE:', url, '(', res.status, ')', '- cited by', where);
       }
     }
   }
@@ -191,12 +283,29 @@ async function run() {
   for (let i = 0; i < CONCURRENCY; i++) workers.push(worker());
   await Promise.all(workers);
 
-  if (failures.length) {
-    console.error('\nSummary: found', failures.length, 'broken links:');
-    for (const f of failures) console.error('-', f.file, '->', f.url, 'status:', f.status);
+  console.log(
+    '\nSummary:', okCount, 'ok,', broken.length, 'broken,', unreachable.length,
+    'unreachable (' + urls.length + ' unique URLs from ' + files.length + ' pages).'
+  );
+
+  if (unreachable.length) {
+    console.warn('\nUnreachable — the network could not answer, not proof a source is gone:');
+    for (const u of unreachable) console.warn('-', u.url, '(', u.status, ')', 'cited by', u.files);
+    console.warn('Re-run when online, or pass --strict to fail on these.');
+  }
+
+  if (broken.length) {
+    console.error('\nBroken — answered an error status to both HEAD and GET:');
+    for (const b of broken) console.error('-', b.url, 'status:', b.status, 'cited by', b.files);
     process.exit(2);
   }
-  console.log('\nAll checked links returned success status codes.');
+
+  if (unreachable.length && STRICT) {
+    console.error('\n--strict: treating', unreachable.length, 'unreachable URL(s) as failures.');
+    process.exit(2);
+  }
+
+  if (!unreachable.length) console.log('All checked links returned success status codes.');
   process.exit(0);
 }
 

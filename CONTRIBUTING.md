@@ -22,7 +22,8 @@ in a browser, or serve the repository root with any static server, to preview.
    ```
 
    A page that is not in that list is invisible to readers and to the search box
-   in `js/main.js`.
+   in `js/main.js`, so `node tools/validate-pages.js` fails on any file under
+   `conflicts/` that the list does not link.
 
    `data-keywords` is what makes the search find the page by anything other than
    its title. `js/main.js` matches every whitespace-separated word of the query
@@ -84,17 +85,23 @@ Tick every line before you open the pull request. Reviewers check the same list.
 Tick every line before you open the pull request. Reviewers check the same list.
 
 - [ ] The file is `conflicts/<slug>.html` and the slug matches the link in `index.html`.
+      `node tools/validate-pages.js` now fails on a page under `conflicts/` that no
+      `<li>` in `<ul id="conflict-list">` links, and on the same page listed twice.
 - [ ] The `index.html` list item carries a `data-keywords` attribute whose terms all
       appear on the conflict page itself (country, region, parties, agreement names,
       years) — no promotional or partisan wording. Type two of them into the search
-      box and check the page still shows.
+      box and check the page still shows. The validator fails an item with no
+      `data-keywords` (or an empty one) and an item that does not hold exactly one
+      `conflicts/<slug>.html` link; a keyword that is not on the target page is
+      only a warning, so honest synonyms and alternative spellings are fine.
 - [ ] At least three initiatives, each with an organisation named and a working source link.
 - [ ] The page has an "Initiatives and organisations" `<h2>` followed by a `<ul>`, and
       every `<li>` in that list carries at least one external `http(s)` link.
       `node tools/validate-pages.js` fails on any initiative without one.
 - [ ] Every external link resolves (open each one; no 404s, no redirects to a parked domain).
 - [ ] Relative paths are correct from inside `conflicts/`: `../css/styles.css`,
-      `../js/main.js`, `../index.html`.
+      `../js/main.js`, `../index.html`. The validator checks all three and rejects
+      the two-level `../../` forms, which resolve above the repository root.
 - [ ] A "What a reader can do today" section with non-fundraising actions only —
       read, learn, volunteer, share verified sources. No donate links, no appeals.
 - [ ] Neutral tone throughout: no advocacy, no partisan framing; contested facts

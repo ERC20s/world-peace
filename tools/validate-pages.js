@@ -65,6 +65,57 @@ function conflictLinkPathOk(href) {
   return h.startsWith('../../conflicts/') || h.startsWith('./../../conflicts/');
 }
 
+// Normalise a path to forward slashes so comparisons work on every platform.
+function toPosix(p) {
+  return String(p).split(path.sep).join('/').replace(/\\/g, '/');
+}
+
+// Normalise a home-page href ('conflicts/x.html', './conflicts/x.html') to
+// the repository-relative path it points at, or null when it is not one.
+function homeConflictHref(href) {
+  const h = String(href).trim().replace(/[?#].*$/, '');
+  if (!/^(?:\.\/)?conflicts\/[^\/]+\.html?$/i.test(h)) return null;
+  return h.replace(/^\.\//, '');
+}
+
+// Read one attribute out of a tag's attribute string. Attribute order does not
+// matter; a missing attribute returns null, a present-but-empty one returns ''.
+function getAttr(attrs, name) {
+  const re = new RegExp(name + '\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))', 'i');
+  const m = re.exec(String(attrs));
+  if (!m) return null;
+  return m[1] !== undefined ? m[1] : (m[2] !== undefined ? m[2] : (m[3] || ''));
+}
+
+// Strip a page down to lower-cased visible words, for keyword comparison.
+function pageText(html) {
+  return String(html)
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&[a-z]+;|&#\d+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+// Pull the <li> items out of <ul id="conflict-list"> in index.html.
+// Returns null when that list is not present. Each item is
+// { attrs: '<li ...>' attribute text, html: inner HTML }.
+function conflictListItems(text) {
+  const ulOpen = /<ul\b[^>]*\bid\s*=\s*(?:"conflict-list"|'conflict-list'|conflict-list\b)[^>]*>/i.exec(text);
+  if (!ulOpen) return null;
+  const listStart = ulOpen.index + ulOpen[0].length;
+  const closeIdx = text.toLowerCase().indexOf('</ul>', listStart);
+  const inner = closeIdx === -1 ? text.slice(listStart) : text.slice(listStart, closeIdx);
+
+  const items = [];
+  const liRe = /<li\b([^>]*)>([\s\S]*?)<\/li>/gi;
+  let m;
+  while ((m = liRe.exec(inner)) !== null) items.push({ attrs: m[1], html: m[2] });
+  return items;
+}
+
 // Collapse a list item's HTML to a short readable label for error messages.
 function itemLabel(html) {
   const text = String(html)
@@ -102,11 +153,16 @@ function initiativeListItems(text) {
 
 async function runChecks() {
   const errors = [];
+  const warnings = [];
+
+  // Repository-relative conflict pages linked from index.html, in link order.
+  const linkedConflictPages = [];
 
   // 1) Verify every <a href="conflicts/*.html"> referenced in index.html exists under conflicts/
+  let indexTxt = null;
   try {
     const indexPath = path.join('index.html');
-    const indexTxt = await fs.readFile(indexPath, 'utf8');
+    indexTxt = await fs.readFile(indexPath, 'utf8');
     const hrefs = extractHrefValues(indexTxt);
     const conflictHrefs = hrefs.filter(h => /^\.*\/?conflicts\/.+\.html$/.test(h));
     for (const href of conflictHrefs) {
@@ -127,8 +183,91 @@ async function runChecks() {
     console.error('ERROR: could not read index.html:', err && err.message);
   }
 
+  // 1b) The home-page list itself: one conflict link and real keywords per item.
+  if (indexTxt !== null) {
+    const listItems = conflictListItems(indexTxt);
+    if (listItems === null) {
+      errors.push('index.html has no <ul id="conflict-list"> list');
+      console.error('ERROR: index.html missing <ul id="conflict-list">');
+    } else if (listItems.length === 0) {
+      errors.push('index.html has an empty <ul id="conflict-list"> list');
+      console.error('ERROR: index.html conflict list has no <li> items');
+    } else {
+      const seen = new Map();
+      for (let i = 0; i < listItems.length; i++) {
+        const item = listItems[i];
+        const label = itemLabel(item.html) || `list item ${i + 1}`;
+        const targets = extractHrefValues(item.html)
+          .map(homeConflictHref)
+          .filter(Boolean);
+
+        if (targets.length !== 1) {
+          errors.push(
+            `index.html conflict list item "${label}" must contain exactly one ` +
+            `<a href="conflicts/....html"> link (found ${targets.length})`
+          );
+          console.error('ERROR: index.html list item', label, 'has', targets.length, 'conflict links');
+          continue;
+        }
+
+        const target = targets[0];
+        if (seen.has(target)) {
+          errors.push(`index.html lists ${target} more than once (items ${seen.get(target)} and ${i + 1})`);
+          console.error('ERROR: index.html duplicate conflict link', target);
+        } else {
+          seen.set(target, i + 1);
+          linkedConflictPages.push(target);
+        }
+
+        const keywords = getAttr(item.attrs, 'data-keywords');
+        if (keywords === null || !String(keywords).trim()) {
+          errors.push(`index.html list item for ${target} has no non-empty data-keywords attribute`);
+          console.error('ERROR: index.html list item for', target, 'missing data-keywords');
+          continue;
+        }
+        console.log('OK: index.html list item for', target, 'is linked and keyworded');
+
+        // Keyword terms that do not appear on the page are a warning, not a
+        // failure: honest synonyms and alternative spellings stay allowed.
+        if (await fileExists(path.join(target))) {
+          try {
+            const targetTxt = pageText(await fs.readFile(path.join(target), 'utf8'));
+            const missing = String(keywords)
+              .split(/\s+/)
+              .map(t => t.trim().toLowerCase())
+              .filter(t => t.length > 2)
+              .filter(t => targetTxt.indexOf(t) === -1);
+            const unique = Array.from(new Set(missing));
+            if (unique.length) {
+              warnings.push(
+                `index.html keywords for ${target} not found on that page: ${unique.join(', ')}`
+              );
+              console.warn('WARN: keywords not on', target + ':', unique.join(', '));
+            }
+          } catch (err) {
+            warnings.push(`Could not read ${target} for keyword check: ${err && err.message}`);
+          }
+        }
+      }
+    }
+  }
+
   // 2) Scan every file in conflicts/ for "Sources last checked: YYYY-MM-DD"
   const conflictFiles = await listHtmlFiles('conflicts');
+
+  // 2a) Orphan check: a conflict page nobody links from index.html is invisible.
+  if (indexTxt !== null) {
+    const linked = new Set(linkedConflictPages.map(toPosix));
+    for (const f of conflictFiles) {
+      if (!linked.has(toPosix(f))) {
+        errors.push(`${toPosix(f)} exists but is not linked from index.html`);
+        console.error('ERROR:', toPosix(f), 'is not linked from index.html');
+      } else {
+        console.log('OK:', toPosix(f), 'is linked from index.html');
+      }
+    }
+  }
+
   if (conflictFiles.length === 0) {
     console.log('Note: no files found in conflicts/ to check for sources date.');
   }
@@ -163,6 +302,27 @@ async function runChecks() {
             console.log('OK:', f, `initiative ${i + 1} is sourced`);
           }
         });
+      }
+
+      // Relative asset paths from inside conflicts/ are one level up.
+      const conflictPaths = [
+        { re: /\.\.\/css\/styles\.css/, what: '../css/styles.css' },
+        { re: /\.\.\/js\/main\.js/, what: '../js/main.js' },
+        { re: /\.\.\/index\.html/, what: '../index.html' }
+      ];
+      for (const { re, what } of conflictPaths) {
+        // '../../css/...' is two levels up and wrong from conflicts/: reject it
+        // by requiring the exact one-level form and no two-level form.
+        const hasTwoLevel = new RegExp('\\.\\.\\/' + re.source).test(txt);
+        if (hasTwoLevel) {
+          errors.push(`${f} uses ../${what} (two levels up); from conflicts/ it must be ${what}`);
+          console.error('ERROR:', f, 'uses ../' + what, 'instead of', what);
+        } else if (!re.test(txt)) {
+          errors.push(`${f} does not use ${what} as the relative path`);
+          console.error('ERROR:', f, 'missing', what);
+        } else {
+          console.log('OK:', f, 'contains', what);
+        }
       }
     } catch (err) {
       errors.push(`Failed to read ${f}: ${err && err.message}`);
@@ -225,6 +385,11 @@ async function runChecks() {
       errors.push(`Failed to read ${f}: ${err && err.message}`);
       console.error('ERROR: could not read', f, err && err.message);
     }
+  }
+
+  if (warnings.length) {
+    console.warn('\nWarnings:', warnings.length, '(these do not fail the run)');
+    for (const w of warnings) console.warn('- ' + w);
   }
 
   if (errors.length) {

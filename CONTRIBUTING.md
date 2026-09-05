@@ -121,8 +121,6 @@ Tick every line before you open the pull request. Reviewers check the same list.
 Tick every line before you open the pull request. Reviewers check the same list.
 
 - [ ] The file is `conflicts/<slug>.html` and the slug matches the link in `index.html`.
-      `node tools/validate-pages.js` now fails on a page under `conflicts/` that no
-      `<li>` in `<ul id="conflict-list">` links, and on the same page listed twice.
 - [ ] The `index.html` list item carries a `data-keywords` attribute whose terms all
       appear on the conflict page itself (country, region, parties, agreement names,
       years) — no promotional or partisan wording. Type two of them into the search
@@ -190,6 +188,15 @@ Results come back in three kinds:
 - `UNREACHABLE` — DNS failure, refused connection, timeout or a 429 rate limit,
   after one automatic retry. This means the network could not answer, not that
   the source is gone.
+
+Note: the checker now recognises and skips reserved/example hostnames (for
+example: example.org, example.com, example.net, example.local, localhost and
+`d8a.com`). Those URLs are printed as PLACEHOLDER entries and are not fetched.
+The repository validator treats placeholder/example URLs as invalid sources and
+fails a validation run when a conflict or organisation initiative cites one —
+except for the deliberate worked example page at
+`content/organisations/example-organisation.html`, which is allowed to use
+placeholder content.
 
 Exit codes: `0` clean (or unreachable-only), `2` broken links found (and, with
 `--strict`, unreachable ones too), `3` the script itself failed. So running the

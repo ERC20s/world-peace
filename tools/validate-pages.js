@@ -52,6 +52,19 @@ function isExternalHref(href) {
   return /^\s*(?:https?:)?\/\//i.test(String(href));
 }
 
+// Recognise placeholder / example hostnames used in templates and examples.
+function isPlaceholderUrl(raw) {
+  try {
+    let candidate = String(raw).trim();
+    if (/^\/\//.test(candidate)) candidate = 'https:' + candidate;
+    const u = new URL(candidate, 'http://example.local');
+    const host = (u.hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+    return /^(?:example\.org|example\.com|example\.net|example\.local|localhost|d8a\.com)$/i.test(host);
+  } catch (err) {
+    return false;
+  }
+}
+
 // True when the href points at a page under conflicts/ (any relative shape).
 function looksLikeConflictLink(href) {
   return /(?:^|[\/.])conflicts\/[^\/]+\.html?(?:[?#].*)?$/i.test(String(href).trim());
@@ -345,7 +358,9 @@ async function runChecks() {
         console.error('ERROR:', f, '"Initiatives and organisations" list has no <li> items');
       } else {
         initiatives.forEach((li, i) => {
-          const sourced = extractHrefValues(li).some(isExternalHref);
+          const hrefs = extractHrefValues(li);
+          // Consider an initiative sourced only when it cites an external non-placeholder http(s) link.
+          const sourced = hrefs.some(h => isExternalHref(h) && !isPlaceholderUrl(h));
           if (!sourced) {
             const label = itemLabel(li) || '(empty list item)';
             errors.push(
@@ -354,6 +369,19 @@ async function runChecks() {
             console.error('ERROR:', f, `initiative ${i + 1} has no source link:`, label);
           } else {
             console.log('OK:', f, `initiative ${i + 1} is sourced`);
+          }
+
+          // Report any placeholder hrefs explicitly as validation errors (except the worked example)
+          for (const h of hrefs) {
+            if (isExternalHref(h) && isPlaceholderUrl(h)) {
+              // allow the deliberate worked example page: content/organisations/example-organisation.html
+              if (!/content\/organisations\/example-organisation\.html$/.test(f)) {
+                errors.push(`${f} contains a placeholder/example URL as a source: ${h}`);
+                console.error('ERROR:', f, 'contains placeholder source URL:', h);
+              } else {
+                console.log('NOTE:', f, 'contains example placeholder URL (allowed on worked example)');
+              }
+            }
           }
         });
       }

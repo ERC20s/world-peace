@@ -91,6 +91,21 @@ function isLikelyAsset(url) {
   return /\.(css|js|png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf)(\?|$)/i.test(url);
 }
 
+// Recognise placeholder / example hostnames that appear in templates and
+// worked examples. These are not real sources and should be skipped by the
+// checker. The validator treats them as invalid sources.
+function isPlaceholderUrl(raw) {
+  try {
+    let candidate = String(raw).trim();
+    if (/^\/\//.test(candidate)) candidate = 'https:' + candidate;
+    const u = new URL(candidate, 'http://example.local');
+    const host = (u.hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+    return /^(?:example\.org|example\.com|example\.net|example\.local|localhost|d8a\.com)$/i.test(host);
+  } catch (err) {
+    return false;
+  }
+}
+
 // One URL, one identity: protocol-relative hrefs become https, the fragment is
 // dropped (servers never see it) and a bare host gets its "/" back, so the same
 // source cited in two places is fetched once.
@@ -252,6 +267,7 @@ async function run() {
   const unreachable = [];
   let okCount = 0;
 
+  const placeholderUrls = [];
   const citedBy = (url) => [...citations.get(url)].sort().join(', ');
 
   async function worker() {
@@ -259,6 +275,14 @@ async function run() {
       const i = idx++;
       if (i >= urls.length) return;
       const url = urls[i];
+
+      // If the URL is a known placeholder, don't fetch it; record and print it.
+      if (isPlaceholderUrl(url)) {
+        placeholderUrls.push({ url, files: citedBy(url) });
+        console.log('PLACEHOLDER:', url, '- cited by', citedBy(url));
+        continue;
+      }
+
       let res;
       try {
         res = await checkUrl(url);
@@ -285,8 +309,13 @@ async function run() {
 
   console.log(
     '\nSummary:', okCount, 'ok,', broken.length, 'broken,', unreachable.length,
-    'unreachable (' + urls.length + ' unique URLs from ' + files.length + ' pages).'
+    'unreachable,', placeholderUrls.length, 'placeholders (' + urls.length + ' unique URLs from ' + files.length + ' pages).'
   );
+
+  if (placeholderUrls.length) {
+    console.log('\nPlaceholders: these URLs are reserved/example hosts the checker skips:');
+    for (const p of placeholderUrls) console.log('-', p.url, '- cited by', p.files);
+  }
 
   if (unreachable.length) {
     console.warn('\nUnreachable — the network could not answer, not proof a source is gone:');

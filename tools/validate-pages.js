@@ -52,6 +52,21 @@ function isExternalHref(href) {
   return /^\s*(?:https?:)?\/\//i.test(String(href));
 }
 
+// Detect placeholder / example hosts; mirrors the checker predicate so both
+// tools agree on which hosts are placeholders.
+function isPlaceholderUrl(href) {
+  try {
+    const u = new URL(href);
+    const host = String(u.hostname).toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1') return true;
+    if (/(^|\.)example\.(com|org|net|edu)$/.test(host)) return true;
+    if (/(?:\.test$|\.invalid$|\.example$|\.localhost$)/.test(host)) return true;
+    return false;
+  } catch (err) {
+    return false;
+  }
+}
+
 // True when the href points at a page under conflicts/ (any relative shape).
 function looksLikeConflictLink(href) {
   return /(?:^|[\/.])conflicts\/[^\/]+\.html?(?:[?#].*)?$/i.test(String(href).trim());
@@ -345,7 +360,10 @@ async function runChecks() {
         console.error('ERROR:', f, '"Initiatives and organisations" list has no <li> items');
       } else {
         initiatives.forEach((li, i) => {
-          const sourced = extractHrefValues(li).some(isExternalHref);
+          // An initiative is sourced only if it cites an external non-placeholder
+          // http(s) link.
+          const hrefs = extractHrefValues(li).filter(isExternalHref);
+          const sourced = hrefs.some(h => !isPlaceholderUrl(h));
           if (!sourced) {
             const label = itemLabel(li) || '(empty list item)';
             errors.push(
@@ -353,7 +371,14 @@ async function runChecks() {
             );
             console.error('ERROR:', f, `initiative ${i + 1} has no source link:`, label);
           } else {
-            console.log('OK:', f, `initiative ${i + 1} is sourced`);
+            // But flag a template/example placeholder if present on a real page.
+            const hasPlaceholder = hrefs.some(isPlaceholderUrl);
+            if (hasPlaceholder && f !== 'content/organisations/example-organisation.html') {
+              errors.push(`${f} contains a placeholder/example URL in its sources which is not allowed: ${hrefs.filter(isPlaceholderUrl).join(', ')}`);
+              console.error('ERROR:', f, 'contains placeholder URL(s) in initiative sources');
+            } else {
+              console.log('OK:', f, `initiative ${i + 1} is sourced`);
+            }
           }
         });
       }

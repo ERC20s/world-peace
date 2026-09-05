@@ -111,10 +111,10 @@ Tick every line before you open the pull request. Reviewers check the same list.
       published them.
 - [ ] Sources section lists every source cited above.
 - [ ] Every external link resolves (open each one; no 404s, no parked domains).
-      `node tools/check-links.js` exits 0 — see "Checking external links" below.
+      `node tools/check-links.js` exits 0 — see "Checking external links" below. Note: the checker skips reserved placeholder/example hosts such as example.org and localhost and prints them as PLACEHOLDER in its summary; these are not treated as failures.
 - [ ] `node tools/validate-pages.js` exits 0. The validator rejects `../conflicts/`
       (one level short — it resolves to `content/conflicts/`) and fails if a linked
-      `../../conflicts/<slug>.html` page does not exist in the repository.
+      `../../conflicts/<slug>.html` page does not exist in the repository. The validator also rejects placeholder/example URLs (like https://example.org) used as real sources on pages; content/organisations/example-organisation.html is the one allowed worked example page.
 
 ## Pre-submit checklist (conflict pages)
 

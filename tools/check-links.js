@@ -91,6 +91,29 @@ function isLikelyAsset(url) {
   return /\.(css|js|png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf)(\?|$)/i.test(url);
 }
 
+// Detect placeholder / example hosts and reserved test names that contributors
+// use in templates. These should be skipped by the checker and rejected by
+// the validator as real sources.
+function isPlaceholderUrl(u) {
+  try {
+    const parsed = new URL(u);
+    const host = parsed.hostname.toLowerCase();
+
+    // Exact local addresses
+    if (host === 'localhost' || host === '127.0.0.1') return true;
+
+    // Reserved example domains and their subdomains
+    if (/(^|\.)example\.(com|org|net|edu)$/.test(host)) return true;
+
+    // Reserved testing / example TLDs
+    if (/(?:\.test$|\.invalid$|\.example$|\.localhost$)/.test(host)) return true;
+
+    return false;
+  } catch (err) {
+    return false;
+  }
+}
+
 // One URL, one identity: protocol-relative hrefs become https, the fragment is
 // dropped (servers never see it) and a bare host gets its "/" back, so the same
 // source cited in two places is fetched once.
@@ -221,11 +244,19 @@ async function run() {
   for (const f of files) {
     try {
       const links = await findLinksInFile(f);
-      for (const l of links) {
+          for (const l of links) {
         const url = l.url.trim();
         if (!isExternalHttp(url)) continue;
         if (isLikelyAsset(url)) continue;
         const key = normaliseUrl(url);
+        // Skip placeholder/example URLs from checking, but record them for the
+        // summary output so contributors see where they remain in the content.
+        if (isPlaceholderUrl(key)) {
+          if (!citations.has(key)) citations.set(key, new Set());
+          citations.get(key).add(f);
+          hrefCount++;
+          continue;
+        }
         hrefCount++;
         if (!citations.has(key)) citations.set(key, new Set());
         citations.get(key).add(f);
@@ -241,6 +272,17 @@ async function run() {
     process.exit(0);
   }
 
+  // Partition placeholder/example URLs out so workers never fetch them; they are
+  // reported in the summary but never considered broken or unreachable.
+  const placeholderUrls = urls.filter(isPlaceholderUrl);
+  const checkUrls = urls.filter(u => !isPlaceholderUrl(u));
+  if (placeholderUrls.length) {
+    console.log('PLACEHOLDER URLs detected (skipped):');
+    for (const p of placeholderUrls) {
+      console.log('PLACEHOLDER:', p, '- cited by', citedBy(p));
+    }
+  }
+
   console.log(
     'Found', hrefCount, 'external link' + (hrefCount === 1 ? '' : 's') + ' ->',
     urls.length, 'unique URL' + (urls.length === 1 ? '' : 's') + '. Checking with up to',
@@ -254,11 +296,13 @@ async function run() {
 
   const citedBy = (url) => [...citations.get(url)].sort().join(', ');
 
+  // Workers iterate over the checkUrls list (placeholders were removed above).
+  const urlsToCheck = checkUrls;
   async function worker() {
     while (true) {
       const i = idx++;
-      if (i >= urls.length) return;
-      const url = urls[i];
+      if (i >= urlsToCheck.length) return;
+      const url = urlsToCheck[i];
       let res;
       try {
         res = await checkUrl(url);
@@ -285,7 +329,7 @@ async function run() {
 
   console.log(
     '\nSummary:', okCount, 'ok,', broken.length, 'broken,', unreachable.length,
-    'unreachable (' + urls.length + ' unique URLs from ' + files.length + ' pages).'
+    'unreachable (' + (urlsToCheck.length) + ' checked URLs + ' + placeholderUrls.length + ' placeholders = ' + urls.length + ' unique URLs from ' + files.length + ' pages).'
   );
 
   if (unreachable.length) {

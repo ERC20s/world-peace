@@ -131,7 +131,8 @@ run:
   {
     "web": { "cmd": "npm run web", "port": 5001 },
     "link-check": { "cmd": "npm run check-links" },
-    "validate-pages": { "cmd": "npm run validate-pages" }
+    "validate-pages": { "cmd": "npm run validate-pages" },
+    "fix-paths": { "cmd": "npm run fix-paths" }
   }
 
 keys:

@@ -94,32 +94,17 @@ function isLikelyAsset(url) {
 // Recognise placeholder / example hostnames that appear in templates and
 // worked examples. These are not real sources and should be skipped by the
 // checker. The validator treats them as invalid sources.
+const urlUtils = require('./url-utils');
+
 function isPlaceholderUrl(raw) {
-  try {
-    let candidate = String(raw).trim();
-    if (/^\/\//.test(candidate)) candidate = 'https:' + candidate;
-    const u = new URL(candidate, 'http://example.local');
-    const host = (u.hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
-    return /^(?:example\.org|example\.com|example\.net|example\.local|localhost|d8a\.com)$/i.test(host);
-  } catch (err) {
-    return false;
-  }
+  return urlUtils.isPlaceholderUrl(raw);
 }
 
 // One URL, one identity: protocol-relative hrefs become https, the fragment is
 // dropped (servers never see it) and a bare host gets its "/" back, so the same
 // source cited in two places is fetched once.
 function normaliseUrl(raw) {
-  let candidate = raw;
-  if (/^\/\//.test(candidate)) candidate = 'https:' + candidate;
-  try {
-    const u = new URL(candidate);
-    u.hash = '';
-    if (!u.pathname) u.pathname = '/';
-    return u.toString();
-  } catch (err) {
-    return candidate;
-  }
+  return urlUtils.normaliseUrl(raw);
 }
 
 function requestOnce(u, method, timeout, redirectsLeft) {

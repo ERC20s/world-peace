@@ -61,25 +61,25 @@ const MAX_AGE_DAYS = (() => {
 
 // Extract the ISO date (YYYY-MM-DD) from the text if present and return
 // an object { date: Date, raw: 'YYYY-MM-DD' } or null when absent/invalid.
-49.6: function extractIsoDate(text) {
-49.7:   const m = /Sources last checked:\s*(\d{4}-\d{2}-\d{2})/.exec(text);
-49.8:   if (!m) return null;
-49.9:   const raw = m[1];
-49.10:   const parts = raw.split('-').map(Number);
-49.11:   const [y, mn, d] = parts;
-49.12:   if (!y || !mn || !d) return null;
-49.13:   // Create a UTC date at midnight for the given ISO date to avoid timezone issues.
-49.14:   const date = new Date(Date.UTC(y, mn - 1, d, 0, 0, 0));
-49.15:   if (isNaN(date.getTime())) return null;
-49.16:   return { date, raw };
-49.17: }
-49.18: 
-49.19: function isOlderThanDays(date, days) {
-49.20:   const now = Date.now();
-49.21:   const ageMs = now - date.getTime();
-49.22:   const ageDays = ageMs / (24 * 60 * 60 * 1000);
-49.23:   return ageDays > days;
-49.24: }
+function extractIsoDate(text) {
+  const m = /Sources last checked:\s*(\d{4}-\d{2}-\d{2})/.exec(text);
+  if (!m) return null;
+  const raw = m[1];
+  const parts = raw.split('-').map(Number);
+  const [y, mn, d] = parts;
+  if (!y || !mn || !d) return null;
+  // Create a UTC date at midnight for the given ISO date to avoid timezone issues.
+  const date = new Date(Date.UTC(y, mn - 1, d, 0, 0, 0));
+  if (isNaN(date.getTime())) return null;
+  return { date, raw };
+}
+
+function isOlderThanDays(date, days) {
+  const now = Date.now();
+  const ageMs = now - date.getTime();
+  const ageDays = ageMs / (24 * 60 * 60 * 1000);
+  return ageDays > days;
+}
 
 // True when the href points at an external source: http://, https:// or //host.
 function isExternalHref(href) {

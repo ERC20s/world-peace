@@ -133,3 +133,6 @@ run:
     "link-check": { "cmd": "npm run check-links" },
     "validate-pages": { "cmd": "npm run validate-pages" }
   }
+
+keys:
+  SOURCES_MAX_AGE_DAYS

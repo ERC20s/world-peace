@@ -204,6 +204,8 @@ async function checkUrl(rawUrl) {
 }
 
 async function run() {
+  const REPORT = process.argv.slice(2).includes('--report');
+
   const dirs = ['conflicts', path.join('content', 'organisations')];
   const files = [];
   for (const d of dirs) {
@@ -212,6 +214,17 @@ async function run() {
 
   if (!files.length) {
     console.log('No HTML files found to scan in conflicts/ or content/organisations/.');
+    // Still produce an empty report when requested.
+    if (REPORT) {
+      await fs.mkdir('reports', { recursive: true });
+      const out = {
+        generatedAt: new Date().toISOString(),
+        summary: { hrefCount: 0, uniqueUrls: 0, ok: 0, broken: 0, unreachable: 0, placeholders: 0 },
+        urls: []
+      };
+      await fs.writeFile(path.join('reports', 'link-check.json'), JSON.stringify(out, null, 2) + '\n', 'utf8');
+      console.log('Wrote report to reports/link-check.json');
+    }
     process.exit(0);
   }
 
@@ -238,6 +251,16 @@ async function run() {
   const urls = [...citations.keys()];
   if (!urls.length) {
     console.log('No external HTTP(S) links found in the scanned files.');
+    if (REPORT) {
+      await fs.mkdir('reports', { recursive: true });
+      const out = {
+        generatedAt: new Date().toISOString(),
+        summary: { hrefCount, uniqueUrls: 0, ok: 0, broken: 0, unreachable: 0, placeholders: 0 },
+        urls: []
+      };
+      await fs.writeFile(path.join('reports', 'link-check.json'), JSON.stringify(out, null, 2) + '\n', 'utf8');
+      console.log('Wrote report to reports/link-check.json');
+    }
     process.exit(0);
   }
 
@@ -252,8 +275,9 @@ async function run() {
   const unreachable = [];
   let okCount = 0;
 
+  const results = []; // every checked URL as an object for the report
   const placeholderUrls = [];
-  const citedBy = (url) => [...citations.get(url)].sort().join(', ');
+  const citedBy = (url) => [...citations.get(url)].sort();
 
   async function worker() {
     while (true) {
@@ -263,8 +287,10 @@ async function run() {
 
       // If the URL is a known placeholder, don't fetch it; record and print it.
       if (isPlaceholderUrl(url)) {
-        placeholderUrls.push({ url, files: citedBy(url) });
-        console.log('PLACEHOLDER:', url, '- cited by', citedBy(url));
+        const filesList = citedBy(url);
+        placeholderUrls.push({ url, files: filesList });
+        results.push({ url, state: 'placeholder', status: 'placeholder host', files: filesList });
+        console.log('PLACEHOLDER:', url, '- cited by', filesList.join(', '));
         continue;
       }
 
@@ -274,16 +300,19 @@ async function run() {
       } catch (err) {
         res = { state: 'unreachable', status: (err && err.message) || 'error' };
       }
-      const where = citedBy(url);
+      const filesList = citedBy(url);
       if (res.state === 'ok') {
         okCount++;
+        results.push({ url, state: 'ok', status: res.status, files: filesList, method: res.method });
         console.log('OK:', url, '(', res.status, 'via', res.method || 'HEAD', ')');
       } else if (res.state === 'broken') {
-        broken.push({ url, status: res.status, files: where });
-        console.log('BROKEN:', url, 'status:', res.status, '- cited by', where);
+        broken.push({ url, status: res.status, files: filesList });
+        results.push({ url, state: 'broken', status: res.status, files: filesList, method: res.method, retried: !!res.retried });
+        console.log('BROKEN:', url, 'status:', res.status, '- cited by', filesList.join(', '));
       } else {
-        unreachable.push({ url, status: res.status, files: where });
-        console.log('UNREACHABLE:', url, '(', res.status, ')', '- cited by', where);
+        unreachable.push({ url, status: res.status, files: filesList });
+        results.push({ url, state: 'unreachable', status: res.status, files: filesList, method: res.method, retried: !!res.retried });
+        console.log('UNREACHABLE:', url, '(', res.status, ')', '- cited by', filesList.join(', '));
       }
     }
   }
@@ -299,23 +328,42 @@ async function run() {
 
   if (placeholderUrls.length) {
     console.log('\nPlaceholders: these URLs are reserved/example hosts the checker skips:');
-    for (const p of placeholderUrls) console.log('-', p.url, '- cited by', p.files);
+    for (const p of placeholderUrls) console.log('-', p.url, '- cited by', p.files.join(', '));
   }
 
   if (unreachable.length) {
     console.warn('\nUnreachable — the network could not answer, not proof a source is gone:');
-    for (const u of unreachable) console.warn('-', u.url, '(', u.status, ')', 'cited by', u.files);
+    for (const u of unreachable) console.warn('-', u.url, '(', u.status, ')', 'cited by', u.files.join(', '));
     console.warn('Re-run when online, or pass --strict to fail on these.');
   }
 
   if (broken.length) {
     console.error('\nBroken — answered an error status to both HEAD and GET:');
-    for (const b of broken) console.error('-', b.url, 'status:', b.status, 'cited by', b.files);
-    process.exit(2);
+    for (const b of broken) console.error('-', b.url, 'status:', b.status, 'cited by', b.files.join(', '));
   }
 
   if (unreachable.length && STRICT) {
     console.error('\n--strict: treating', unreachable.length, 'unreachable URL(s) as failures.');
+  }
+
+  // Build and write the report if requested. Always write so CI can inspect results.
+  if (REPORT) {
+    try {
+      const summary = { hrefCount, uniqueUrls: urls.length, ok: okCount, broken: broken.length, unreachable: unreachable.length, placeholders: placeholderUrls.length };
+      const out = { generatedAt: new Date().toISOString(), summary, urls: results };
+      await fs.mkdir('reports', { recursive: true });
+      await fs.writeFile(path.join('reports', 'link-check.json'), JSON.stringify(out, null, 2) + '\n', 'utf8');
+      console.log('Wrote report to reports/link-check.json');
+    } catch (err) {
+      console.error('Failed writing report:', err && err.message || err);
+    }
+  }
+
+  // Exit with the same semantics as before.
+  if (broken.length) {
+    process.exit(2);
+  }
+  if (unreachable.length && STRICT) {
     process.exit(2);
   }
 

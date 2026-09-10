@@ -59,6 +59,9 @@ const MAX_AGE_DAYS = (() => {
   return 365;
 })();
 
+// Parse report flag (either command-line --report or REPORT env var)
+const REPORT = process.argv.includes('--report') || Boolean(process.env.REPORT);
+
 // Extract the ISO date (YYYY-MM-DD) from the text if present and return
 // an object { date: Date, raw: 'YYYY-MM-DD' } or null when absent/invalid.
 function extractIsoDate(text) {
@@ -152,7 +155,7 @@ function homeConflictHref(href) {
 // Read one attribute out of a tag's attribute string. Attribute order does not
 // matter; a missing attribute returns null, a present-but-empty one returns ''.
 function getAttr(attrs, name) {
-  const re = new RegExp(name + '\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))', 'i');
+  const re = new RegExp(name + '\\s*=\\s*(?:"([^"]*)"|' + "'([^']*)'" + '|([^\\s>]+))', 'i');
   const m = re.exec(String(attrs));
   if (!m) return null;
   return m[1] !== undefined ? m[1] : (m[2] !== undefined ? m[2] : (m[3] || ''));
@@ -201,7 +204,7 @@ function listItemsById(text, id) {
   const inner = closeIdx === -1 ? text.slice(listStart) : text.slice(listStart, closeIdx);
 
   const items = [];
-  const liRe = /<li\b([^>]*)>([\s\S]*?)<\/li>/gi;
+  const liRe = /<li\\b([^>]*)>([\s\S]*?)<\/li>/gi;
   let m;
   while ((m = liRe.exec(inner)) !== null) items.push({ attrs: m[1], html: m[2] });
   return items;
@@ -786,16 +789,69 @@ async function runChecks() {
     for (const w of warnings) console.warn('- ' + w);
   }
 
-  if (errors.length) {
-    console.error('\nValidation failed:', errors.length, 'problem(s) found.');
-    for (const e of errors) console.error('- ' + e);
-    process.exit(2);
-  }
-  console.log('\nAll checks passed.');
-  process.exit(0);
+  const exitCode = errors.length ? 2 : 0;
+
+  // compute filesScanned: unique set of index, orgIndex (if exists), conflictFiles and orgFiles
+  const filesSet = new Set();
+  if (indexTxt !== null) filesSet.add(path.join('index.html'));
+  for (const f of conflictFiles) filesSet.add(toPosix(f));
+  for (const f of orgFiles) filesSet.add(toPosix(f));
+  if (orgIndexExists) filesSet.add(toPosix(orgIndexPath));
+
+  return { errors, warnings, exitCode, filesScanned: filesSet.size };
 }
 
-runChecks().catch(err => {
+// Run and handle reporting + exit semantics in one place so reports are always attempted.
+runChecks().then(async result => {
+  const { errors, warnings, exitCode, filesScanned } = result;
+
+  if (REPORT) {
+    const reportObj = {
+      generatedAt: new Date().toISOString(),
+      summary: {
+        filesScanned: filesScanned || 0,
+        errors: errors.length,
+        warnings: warnings.length
+      },
+      errors,
+      warnings
+    };
+
+    try {
+      await fs.mkdir('reports', { recursive: true });
+      await fs.writeFile(path.join('reports', 'validate-pages.json'), JSON.stringify(reportObj, null, 2), 'utf8');
+      console.log('Wrote report to reports/validate-pages.json');
+    } catch (err) {
+      console.error('ERROR: failed to write report:', err && err.message);
+    }
+  }
+
+  if (exitCode === 2) {
+    console.error('\nValidation failed:', errors.length, 'problem(s) found.');
+    for (const e of errors) console.error('- ' + e);
+  } else {
+    console.log('\nAll checks passed.');
+  }
+
+  process.exit(exitCode);
+}).catch(async err => {
   console.error('Fatal error:', err && err.stack || err);
+
+  if (REPORT) {
+    const reportObj = {
+      generatedAt: new Date().toISOString(),
+      summary: { filesScanned: 0, errors: 1, warnings: 0 },
+      errors: [String(err && err.message || err)],
+      warnings: []
+    };
+    try {
+      await fs.mkdir('reports', { recursive: true });
+      await fs.writeFile(path.join('reports', 'validate-pages.json'), JSON.stringify(reportObj, null, 2), 'utf8');
+      console.log('Wrote fatal report to reports/validate-pages.json');
+    } catch (e) {
+      console.error('ERROR: failed to write fatal report:', e && e.message);
+    }
+  }
+
   process.exit(3);
 });

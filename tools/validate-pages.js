@@ -218,6 +218,31 @@ function initiativeListItems(text) {
   return items;
 }
 
+// Pull the <li> items out of the first <ul> that follows the
+// "Verifiable activities" <h2> on an organisation page.
+// Returns null when the section (or its list) is not present.
+function activityListItems(text) {
+  const heading = /<h2[^>]*>\s*Verifiable activities\s*<\/h2>/i.exec(text);
+  if (!heading) return null;
+
+  // Only look inside this section: stop at the next <h2>.
+  let section = text.slice(heading.index + heading[0].length);
+  const nextHeading = section.search(/<h2\b/i);
+  if (nextHeading !== -1) section = section.slice(0, nextHeading);
+
+  const ulOpen = /<ul\b[^>]*>/i.exec(section);
+  if (!ulOpen) return null;
+  const listStart = ulOpen.index + ulOpen[0].length;
+  const closeIdx = section.toLowerCase().indexOf('</ul>', listStart);
+  const inner = closeIdx === -1 ? section.slice(listStart) : section.slice(listStart, closeIdx);
+
+  const items = [];
+  const liRe = /<li\b[^>]*>([\s\S]*?)<\/li>/gi;
+  let m;
+  while ((m = liRe.exec(inner)) !== null) items.push(m[1]);
+  return items;
+}
+
 async function runChecks() {
   const errors = [];
   const warnings = [];
@@ -457,6 +482,69 @@ async function runChecks() {
   for (const f of orgFiles) {
     try {
       const txt = await fs.readFile(f, 'utf8');
+
+      // The index page itself lists organisations; it has no "Verifiable
+      // activities" section or sources of its own, so it is exempt from
+      // both checks below (same treatment as the sibling-index-link check).
+      const isOrgIndexFile = /^index\.html?$/i
+        .test(toPosix(f).replace(/^content\/organisations\//, ''));
+
+      // Every organisation page (other than the index) must show a
+      // sources-checked date, the same rule already applied to conflicts/.
+      if (!isOrgIndexFile) {
+        if (!isoDatePresent(txt)) {
+          errors.push(`${f} is missing a "Sources last checked: YYYY-MM-DD" line`);
+          console.error('ERROR:', f, 'missing sources-checked date');
+        } else {
+          console.log('OK:', f, 'has sources-checked date');
+        }
+      }
+
+      // Every activity listed must carry at least one external http(s) source link,
+      // mirroring the "Initiatives and organisations" rule on conflict pages.
+      if (!isOrgIndexFile) {
+        const activities = activityListItems(txt);
+        if (activities === null) {
+          errors.push(`${f} has no "Verifiable activities" section with a <ul> list`);
+          console.error('ERROR:', f, 'missing "Verifiable activities" list');
+        } else if (activities.length === 0) {
+          errors.push(`${f} has an empty "Verifiable activities" list`);
+          console.error('ERROR:', f, '"Verifiable activities" list has no <li> items');
+        } else {
+          // The worked example is allowed to cite placeholder example.org URLs
+          // (see the placeholder-URL check just below); treat those as sourced
+          // there so the shipped example keeps validating.
+          const isWorkedExample = /content\/organisations\/example-organisation\.html$/.test(toPosix(f));
+          activities.forEach((li, i) => {
+          const activityHrefs = extractHrefValues(li);
+          // Consider an activity sourced only when it cites an external non-placeholder http(s) link
+          // (the worked example is exempt: its placeholder links still count).
+          const sourced = activityHrefs.some(h => isExternalHref(h) && (!isPlaceholderUrl(h) || isWorkedExample));
+          if (!sourced) {
+            const label = itemLabel(li) || '(empty list item)';
+            errors.push(
+              `${f} activity ${i + 1} has no external http(s) source link: "${label}"`
+            );
+            console.error('ERROR:', f, `activity ${i + 1} has no source link:`, label);
+          } else {
+            console.log('OK:', f, `activity ${i + 1} is sourced`);
+          }
+
+          // Report any placeholder hrefs explicitly as validation errors (except the worked example)
+          for (const h of activityHrefs) {
+            if (isExternalHref(h) && isPlaceholderUrl(h)) {
+              if (!isWorkedExample) {
+                errors.push(`${f} contains a placeholder/example URL as a source: ${h}`);
+                console.error('ERROR:', f, 'contains placeholder source URL:', h);
+              } else {
+                console.log('NOTE:', f, 'contains example placeholder URL (allowed on worked example)');
+              }
+            }
+          }
+          });
+        }
+      }
+
       // Check CSS
       if (!/href\s*=\s*(?:"|')\.\.\/\.\.\/css\/styles\.css(?:"|')/.test(txt) && !/\.\.\/\.\.\/css\/styles\.css/.test(txt)) {
         errors.push(`${f} does not include ../../css/styles.css as the stylesheet path`);

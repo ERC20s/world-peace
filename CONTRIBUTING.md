@@ -103,6 +103,14 @@ Tick every line before you open the pull request. Reviewers check the same list.
       matching `data/organisation.schema.json`.
 - [ ] Every activity listed is concrete and sourced — each one checkable against a
       published source (annual report, news coverage, the organisation's own site).
+      The "Verifiable activities" `<h2>` must be followed by a `<ul>`, and every
+      `<li>` in it must carry at least one external, non-placeholder `http(s)`
+      link — `node tools/validate-pages.js` fails on an empty or missing list, or
+      any activity with no such link, the same rule already applied to a conflict
+      page's "Initiatives and organisations" list.
+- [ ] The page shows a "Sources last checked: YYYY-MM-DD" line under Sources.
+      The validator fails an organisation page with no such line, the same rule
+      already applied to conflict pages.
 - [ ] The "Linked conflict pages" section points at real `conflicts/*.html` pages,
       and those pages reference the organisation back.
 - [ ] "What a reader can do today" lists non-fundraising actions only — read,

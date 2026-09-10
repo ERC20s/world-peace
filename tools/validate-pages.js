@@ -47,6 +47,31 @@ function isoDatePresent(text) {
   return /Sources last checked:\s*\d{4}-\d{2}-\d{2}/.test(text);
 }
 
+49.1: // Maximum acceptable age, in days, for a "Sources last checked" date.
+49.2: const MAX_AGE_DAYS = 365;
+49.3: 
+49.4: // Extract the ISO date (YYYY-MM-DD) from the text if present and return
+49.5: // an object { date: Date, raw: 'YYYY-MM-DD' } or null when absent/invalid.
+49.6: function extractIsoDate(text) {
+49.7:   const m = /Sources last checked:\s*(\d{4}-\d{2}-\d{2})/.exec(text);
+49.8:   if (!m) return null;
+49.9:   const raw = m[1];
+49.10:   const parts = raw.split('-').map(Number);
+49.11:   const [y, mn, d] = parts;
+49.12:   if (!y || !mn || !d) return null;
+49.13:   // Create a UTC date at midnight for the given ISO date to avoid timezone issues.
+49.14:   const date = new Date(Date.UTC(y, mn - 1, d, 0, 0, 0));
+49.15:   if (isNaN(date.getTime())) return null;
+49.16:   return { date, raw };
+49.17: }
+49.18: 
+49.19: function isOlderThanDays(date, days) {
+49.20:   const now = Date.now();
+49.21:   const ageMs = now - date.getTime();
+49.22:   const ageDays = ageMs / (24 * 60 * 60 * 1000);
+49.23:   return ageDays > days;
+49.24: }
+
 // True when the href points at an external source: http://, https:// or //host.
 function isExternalHref(href) {
   return /^\s*(?:https?:)?\/\//i.test(String(href));
@@ -366,11 +391,15 @@ async function runChecks() {
   for (const f of conflictFiles) {
     try {
       const txt = await fs.readFile(f, 'utf8');
-      if (!isoDatePresent(txt)) {
+      const extracted = extractIsoDate(txt);
+      if (!extracted) {
         errors.push(`${f} is missing a "Sources last checked: YYYY-MM-DD" line`);
         console.error('ERROR:', f, 'missing sources-checked date');
+      } else if (isOlderThanDays(extracted.date, MAX_AGE_DAYS)) {
+        errors.push(`${f} has a Sources last checked date older than ${MAX_AGE_DAYS} days: ${extracted.raw}`);
+        console.error('ERROR:', f, 'stale sources-checked date:', extracted.raw);
       } else {
-        console.log('OK:', f, 'has sources-checked date');
+        console.log('OK:', f, 'has recent sources-checked date:', extracted.raw);
       }
 
       // Every initiative listed must carry at least one external http(s) source link.
@@ -492,11 +521,15 @@ async function runChecks() {
       // Every organisation page (other than the index) must show a
       // sources-checked date, the same rule already applied to conflicts/.
       if (!isOrgIndexFile) {
-        if (!isoDatePresent(txt)) {
+        const extracted = extractIsoDate(txt);
+        if (!extracted) {
           errors.push(`${f} is missing a "Sources last checked: YYYY-MM-DD" line`);
           console.error('ERROR:', f, 'missing sources-checked date');
+        } else if (isOlderThanDays(extracted.date, MAX_AGE_DAYS)) {
+          errors.push(`${f} has a Sources last checked date older than ${MAX_AGE_DAYS} days: ${extracted.raw}`);
+          console.error('ERROR:', f, 'stale sources-checked date:', extracted.raw);
         } else {
-          console.log('OK:', f, 'has sources-checked date');
+          console.log('OK:', f, 'has recent sources-checked date:', extracted.raw);
         }
       }
 

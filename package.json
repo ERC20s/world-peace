@@ -7,6 +7,7 @@
     "check-links": "node tools/check-links.js",
     "check-links:report": "node tools/check-links.js --report",
     "validate-pages": "node tools/validate-pages.js",
+    "validate-pages:report": "node tools/validate-pages.js --report",
     "fix-paths": "node tools/fix-relative-paths.js",
     "check": "npm run validate-pages && npm run check-links"
   }

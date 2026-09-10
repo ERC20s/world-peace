@@ -6,6 +6,14 @@
 const fs = require('fs').promises;
 const path = require('path');
 
+// Track files we read so the report can include filesScanned.
+const _scannedFiles = new Set();
+async function readFileCounted(p, enc = 'utf8') {
+  const content = await fs.readFile(p, enc);
+  try { _scannedFiles.add(path.normalize(p)); } catch (e) { /* ignore */ }
+  return content;
+}
+
 function extractHrefValues(text) {
   const hrefRe = /href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
   const out = [];
@@ -288,7 +296,7 @@ async function runChecks() {
   let indexTxt = null;
   try {
     const indexPath = path.join('index.html');
-    indexTxt = await fs.readFile(indexPath, 'utf8');
+    indexTxt = await readFileCounted(indexPath, 'utf8');
     const hrefs = extractHrefValues(indexTxt);
     const conflictHrefs = hrefs.filter(h => /^\.*\/?conflicts\/.+\.html$/.test(h));
     for (const href of conflictHrefs) {
@@ -357,7 +365,7 @@ async function runChecks() {
         // failure: honest synonyms and alternative spellings stay allowed.
         if (await fileExists(path.join(target))) {
           try {
-            const targetTxt = pageText(await fs.readFile(path.join(target), 'utf8'));
+            const targetTxt = pageText(await readFileCounted(path.join(target), 'utf8'));
             const missing = String(keywords)
               .split(/\s+/)
               .map(t => t.trim().toLowerCase())
@@ -399,7 +407,7 @@ async function runChecks() {
   }
   for (const f of conflictFiles) {
     try {
-      const txt = await fs.readFile(f, 'utf8');
+      const txt = await readFileCounted(f, 'utf8');
       const extracted = extractIsoDate(txt);
       if (!extracted) {
         errors.push(`${f} is missing a "Sources last checked: YYYY-MM-DD" line`);
@@ -529,7 +537,7 @@ async function runChecks() {
   }
   for (const f of orgFiles) {
     try {
-      const txt = await fs.readFile(f, 'utf8');
+      const txt = await readFileCounted(f, 'utf8');
 
       // The index page itself lists organisations; it has no "Verifiable
       // activities" section or sources of its own, so it is exempt from
@@ -713,7 +721,7 @@ async function runChecks() {
   // duplicates, and no organisation page in the folder is left off it.
   if (orgIndexExists) {
     try {
-      const orgIndexTxt = await fs.readFile(orgIndexPath, 'utf8');
+      const orgIndexTxt = await readFileCounted(orgIndexPath, 'utf8');
       const items = organisationListItems(orgIndexTxt);
       const listed = new Set();
 
@@ -784,6 +792,34 @@ async function runChecks() {
   if (warnings.length) {
     console.warn('\nWarnings:', warnings.length, '(these do not fail the run)');
     for (const w of warnings) console.warn('- ' + w);
+  }
+
+  // Build the report object if --report flag was provided on the CLI.
+  const reportFlag = process.argv.includes('--report');
+  if (reportFlag) {
+    const report = {
+      generatedAt: new Date().toISOString(),
+      summary: {
+        filesScanned: _scannedFiles.size,
+        errors: errors.length,
+        warnings: warnings.length
+      },
+      errors: errors,
+      warnings: warnings
+    };
+
+    // Ensure reports/ exists and write atomically to reports/validate-pages.json
+    try {
+      await fs.mkdir('reports', { recursive: true });
+      const tmp = path.join('reports', 'validate-pages.json.tmp');
+      const out = JSON.stringify(report, null, 2);
+      await fs.writeFile(tmp, out, 'utf8');
+      await fs.rename(tmp, path.join('reports', 'validate-pages.json'));
+      console.log('WROTE: reports/validate-pages.json');
+    } catch (err) {
+      console.error('ERROR: could not write report:', err && err.message);
+      // fall through and preserve exit semantics below
+    }
   }
 
   if (errors.length) {

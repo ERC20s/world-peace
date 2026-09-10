@@ -1,0 +1,11 @@
+{
+  "name": "world-peace",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "web": "npx --yes serve -l 5001 .",
+    "check-links": "node tools/check-links.js",
+    "validate-pages": "node tools/validate-pages.js",
+    "check": "npm run validate-pages && npm run check-links"
+  }
+}

@@ -177,8 +177,11 @@ Every claim on this site rests on a source link, so run the checker before you
 open a pull request:
 
 ```
-node tools/check-links.js          # report; fails only on genuinely broken links
-node tools/check-links.js --strict # also fail when a URL could not be reached
+npm run check          # runs validate-pages then check-links
+# or the separate scripts:
+npm run validate-pages
+npm run check-links          # report; fails only on genuinely broken links
+npm run check-links -- --strict # also fail when a URL could not be reached (pass flags after a npm script)
 ```
 
 It scans `conflicts/` and `content/organisations/`, collects every external

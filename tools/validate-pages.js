@@ -99,6 +99,29 @@ function isPlaceholderUrl(raw) {
   }
 }
 
+// Detect likely donation or fundraising URLs by token matches in host, path or query.
+// This is intentionally conservative and only looks for well-known fundraising tokens.
+function isDonationUrl(raw) {
+  try {
+    let candidate = String(raw).trim();
+    if (/^\/\//.test(candidate)) candidate = 'https:' + candidate;
+    const u = new URL(candidate, 'http://example.local');
+    const host = (u.hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+    const pathAndQuery = (u.pathname || '') + (u.search || '');
+    const combined = (host + ' ' + pathAndQuery).toLowerCase();
+
+    // Tokens chosen to match common fundraising platforms and obvious donation paths.
+    const tokens = [
+      'donate', 'donations', 'give', 'gofundme', 'patreon', 'fundraise', 'fundraiser',
+      'indiegogo', 'kickstarter', 'ko-fi', 'kofi', 'buymeacoffee', 'paypal.me', 'paypal'
+    ];
+
+    return tokens.some(t => combined.indexOf(t) !== -1);
+  } catch (err) {
+    return false;
+  }
+}
+
 // True when the href points at a page under conflicts/ (any relative shape).
 function looksLikeConflictLink(href) {
   return /(?:^|[\/.])conflicts\/[^\/]+\.html?(?:[?#].*)?$/i.test(String(href).trim());
@@ -423,7 +446,7 @@ async function runChecks() {
         initiatives.forEach((li, i) => {
           const hrefs = extractHrefValues(li);
           // Consider an initiative sourced only when it cites an external non-placeholder http(s) link.
-          const sourced = hrefs.some(h => isExternalHref(h) && !isPlaceholderUrl(h));
+          const sourced = hrefs.some(h => isExternalHref(h) && !isPlaceholderUrl(h) && !isDonationUrl(h));
           if (!sourced) {
             const label = itemLabel(li) || '(empty list item)';
             errors.push(
@@ -443,6 +466,16 @@ async function runChecks() {
                 console.error('ERROR:', f, 'contains placeholder source URL:', h);
               } else {
                 console.log('NOTE:', f, 'contains example placeholder URL (allowed on worked example)');
+              }
+            }
+
+            // Report donation/fundraising links explicitly as validation errors, same exception as above
+            if (isExternalHref(h) && isDonationUrl(h)) {
+              if (!/content\/organisations\/example-organisation\.html$/.test(f)) {
+                errors.push(`${f} contains a donation/fundraising URL as a source: ${h}`);
+                console.error('ERROR:', f, 'contains donation/fundraising source URL:', h);
+              } else {
+                console.log('NOTE:', f, 'contains donation URL on worked example (allowed)');
               }
             }
           }
@@ -561,7 +594,7 @@ async function runChecks() {
           const activityHrefs = extractHrefValues(li);
           // Consider an activity sourced only when it cites an external non-placeholder http(s) link
           // (the worked example is exempt: its placeholder links still count).
-          const sourced = activityHrefs.some(h => isExternalHref(h) && (!isPlaceholderUrl(h) || isWorkedExample));
+          const sourced = activityHrefs.some(h => isExternalHref(h) && (!isPlaceholderUrl(h) || isWorkedExample) && !isDonationUrl(h));
           if (!sourced) {
             const label = itemLabel(li) || '(empty list item)';
             errors.push(
@@ -581,6 +614,17 @@ async function runChecks() {
               } else {
                 console.log('NOTE:', f, 'contains example placeholder URL (allowed on worked example)');
               }
+            }
+
+            // Report donation/fundraising links explicitly as validation errors, same exception as above
+            if (isExternalHref(h) && isDonationUrl(h)) {
+              if (!isWorkedExample) {
+                errors.push(`${f} contains a donation/fundraising URL as a source: ${h}`);
+                console.error('ERROR:', f, 'contains donation/fundraising source URL:', h);
+              } else {
+                console.log('NOTE:', f, 'contains donation URL on worked example (allowed)');
+              }
+            }
             }
           }
           });

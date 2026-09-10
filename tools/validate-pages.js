@@ -81,45 +81,22 @@ function isOlderThanDays(date, days) {
   return ageDays > days;
 }
 
+const urlUtils = require('./url-utils');
+
 // True when the href points at an external source: http://, https:// or //host.
 function isExternalHref(href) {
-  return /^\s*(?:https?:)?\/\//i.test(String(href));
+  return urlUtils.isExternalHref(href);
 }
 
 // Recognise placeholder / example hostnames used in templates and examples.
 function isPlaceholderUrl(raw) {
-  try {
-    let candidate = String(raw).trim();
-    if (/^\/\//.test(candidate)) candidate = 'https:' + candidate;
-    const u = new URL(candidate, 'http://example.local');
-    const host = (u.hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
-    return /^(?:example\.org|example\.com|example\.net|example\.local|localhost|d8a\.com)$/i.test(host);
-  } catch (err) {
-    return false;
-  }
+  return urlUtils.isPlaceholderUrl(raw);
 }
 
 // Detect likely donation or fundraising URLs by token matches in host, path or query.
 // This is intentionally conservative and only looks for well-known fundraising tokens.
 function isDonationUrl(raw) {
-  try {
-    let candidate = String(raw).trim();
-    if (/^\/\//.test(candidate)) candidate = 'https:' + candidate;
-    const u = new URL(candidate, 'http://example.local');
-    const host = (u.hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
-    const pathAndQuery = (u.pathname || '') + (u.search || '');
-    const combined = (host + ' ' + pathAndQuery).toLowerCase();
-
-    // Tokens chosen to match common fundraising platforms and obvious donation paths.
-    const tokens = [
-      'donate', 'donations', 'give', 'gofundme', 'patreon', 'fundraise', 'fundraiser',
-      'indiegogo', 'kickstarter', 'ko-fi', 'kofi', 'buymeacoffee', 'paypal.me', 'paypal'
-    ];
-
-    return tokens.some(t => combined.indexOf(t) !== -1);
-  } catch (err) {
-    return false;
-  }
+  return urlUtils.isDonationUrl(raw);
 }
 
 // True when the href points at a page under conflicts/ (any relative shape).

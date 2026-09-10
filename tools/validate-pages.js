@@ -47,11 +47,20 @@ function isoDatePresent(text) {
   return /Sources last checked:\s*\d{4}-\d{2}-\d{2}/.test(text);
 }
 
-49.1: // Maximum acceptable age, in days, for a "Sources last checked" date.
-49.2: const MAX_AGE_DAYS = 365;
-49.3: 
-49.4: // Extract the ISO date (YYYY-MM-DD) from the text if present and return
-49.5: // an object { date: Date, raw: 'YYYY-MM-DD' } or null when absent/invalid.
+// Maximum acceptable age, in days, for a "Sources last checked" date.
+const MAX_AGE_DAYS = (() => {
+  const raw = process.env.SOURCES_MAX_AGE_DAYS;
+  const v = parseInt(String(raw || '').trim(), 10);
+  if (Number.isFinite(v) && v > 0) {
+    console.log('SOURCES_MAX_AGE_DAYS set to', v);
+    return v;
+  }
+  console.log('SOURCES_MAX_AGE_DAYS not set or invalid, using default 365');
+  return 365;
+})();
+
+// Extract the ISO date (YYYY-MM-DD) from the text if present and return
+// an object { date: Date, raw: 'YYYY-MM-DD' } or null when absent/invalid.
 49.6: function extractIsoDate(text) {
 49.7:   const m = /Sources last checked:\s*(\d{4}-\d{2}-\d{2})/.exec(text);
 49.8:   if (!m) return null;

@@ -58,6 +58,18 @@ function isDonationUrl(raw) {
   }
 }
 
+// True for secure URLs: https: and protocol-relative (//host) treated as https.
+function isSecureUrl(raw) {
+  try {
+    let candidate = String(raw).trim();
+    if (/^\/\//.test(candidate)) candidate = 'https:' + candidate;
+    const u = new URL(candidate, 'http://example.local');
+    return u.protocol === 'https:';
+  } catch (err) {
+    return false;
+  }
+}
+
 // Normalise a URL: protocol-relative -> https, drop fragments, ensure a pathname.
 function normaliseUrl(raw) {
   let candidate = raw;
@@ -77,5 +89,6 @@ module.exports = {
   isExternalHttp,
   isPlaceholderUrl,
   isDonationUrl,
+  isSecureUrl,
   normaliseUrl
 };

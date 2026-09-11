@@ -67,6 +67,14 @@ const MAX_AGE_DAYS = (() => {
   return 365;
 })();
 
+// Allow HTTP sources when this env var is truthy. When set, the validator
+// treats http:// links as acceptable and suppresses explicit insecure-URL errors.
+const ALLOW_HTTP_SOURCES = (() => {
+  const raw = String(process.env.ALLOW_HTTP_SOURCES || '').trim().toLowerCase();
+  if (!raw) return false;
+  return ['1', 'true', 'on', 'yes'].includes(raw);
+})();
+
 // Extract the ISO date (YYYY-MM-DD) from the text if present and return
 // an object { date: Date, raw: 'YYYY-MM-DD' } or null when absent/invalid.
 function extractIsoDate(text) {
@@ -105,6 +113,11 @@ function isPlaceholderUrl(raw) {
 // This is intentionally conservative and only looks for well-known fundraising tokens.
 function isDonationUrl(raw) {
   return urlUtils.isDonationUrl(raw);
+}
+
+// New helper: isSecureUrl(raw) — true for https: and protocol-relative //host treated as https.
+function isSecureUrl(raw) {
+  return urlUtils.isSecureUrl(raw);
 }
 
 // True when the href points at a page under conflicts/ (any relative shape).
@@ -431,7 +444,7 @@ async function runChecks() {
         initiatives.forEach((li, i) => {
           const hrefs = extractHrefValues(li);
           // Consider an initiative sourced only when it cites an external non-placeholder http(s) link.
-          const sourced = hrefs.some(h => isExternalHref(h) && !isPlaceholderUrl(h) && !isDonationUrl(h));
+          const sourced = hrefs.some(h => isExternalHref(h) && !isPlaceholderUrl(h) && !isDonationUrl(h) && (ALLOW_HTTP_SOURCES || isSecureUrl(h)));
           if (!sourced) {
             const label = itemLabel(li) || '(empty list item)';
             errors.push(
@@ -461,6 +474,16 @@ async function runChecks() {
                 console.error('ERROR:', f, 'contains donation/fundraising source URL:', h);
               } else {
                 console.log('NOTE:', f, 'contains donation URL on worked example (allowed)');
+              }
+            }
+
+            // Report insecure http:// explicit errors only when the opt-out is not set.
+            if (isExternalHref(h) && !isSecureUrl(h)) {
+              if (!ALLOW_HTTP_SOURCES) {
+                errors.push(`${f} contains an insecure (http) source URL: ${h}`);
+                console.error('ERROR:', f, 'contains insecure (http) source URL:', h);
+              } else {
+                console.log('NOTE:', f, 'contains insecure (http) source URL but ALLOW_HTTP_SOURCES is set, allowed:', h);
               }
             }
           }
@@ -579,7 +602,7 @@ async function runChecks() {
           const activityHrefs = extractHrefValues(li);
           // Consider an activity sourced only when it cites an external non-placeholder http(s) link
           // (the worked example is exempt: its placeholder links still count).
-          const sourced = activityHrefs.some(h => isExternalHref(h) && (!isPlaceholderUrl(h) || isWorkedExample) && !isDonationUrl(h));
+          const sourced = activityHrefs.some(h => isExternalHref(h) && ((!isPlaceholderUrl(h) || isWorkedExample) && !isDonationUrl(h) && (ALLOW_HTTP_SOURCES || isSecureUrl(h))));
           if (!sourced) {
             const label = itemLabel(li) || '(empty list item)';
             errors.push(

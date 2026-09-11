@@ -107,6 +107,19 @@ function isDonationUrl(raw) {
   return urlUtils.isDonationUrl(raw);
 }
 
+// True when the href resolves to a secure (HTTPS) URL. Protocol-relative (//) is treated as HTTPS.
+function isSecureUrl(raw) {
+  return urlUtils.isSecureUrl(raw);
+}
+
+// Allow plain http sources when ALLOW_HTTP_SOURCES is set to a truthy value in the environment.
+const ALLOW_HTTP_SOURCES = (() => {
+  const raw = process.env.ALLOW_HTTP_SOURCES;
+  if (!raw) return false;
+  const v = String(raw).trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+})();
+
 // True when the href points at a page under conflicts/ (any relative shape).
 function looksLikeConflictLink(href) {
   return /(?:^|[\/.])conflicts\/[^\/]+\.html?(?:[?#].*)?$/i.test(String(href).trim());
@@ -431,7 +444,7 @@ async function runChecks() {
         initiatives.forEach((li, i) => {
           const hrefs = extractHrefValues(li);
           // Consider an initiative sourced only when it cites an external non-placeholder http(s) link.
-          const sourced = hrefs.some(h => isExternalHref(h) && !isPlaceholderUrl(h) && !isDonationUrl(h));
+          const sourced = hrefs.some(h => isExternalHref(h) && !isPlaceholderUrl(h) && !isDonationUrl(h) && (ALLOW_HTTP_SOURCES || isSecureUrl(h)));
           if (!sourced) {
             const label = itemLabel(li) || '(empty list item)';
             errors.push(
@@ -444,6 +457,16 @@ async function runChecks() {
 
           // Report any placeholder hrefs explicitly as validation errors (except the worked example)
           for (const h of hrefs) {
+            // Report insecure http:// external sources explicitly as validation errors (except the worked example).
+            if (isExternalHref(h) && !isSecureUrl(h)) {
+              if (!/content\/organisations\/example-organisation\.html$/.test(f)) {
+                errors.push(`${f} contains an insecure (http) URL as a source: ${h}`);
+                console.error('ERROR:', f, 'contains insecure (http) source URL:', h);
+              } else {
+                console.log('NOTE:', f, 'contains insecure http URL on worked example (allowed)');
+              }
+            }
+
             if (isExternalHref(h) && isPlaceholderUrl(h)) {
               // allow the deliberate worked example page: content/organisations/example-organisation.html
               if (!/content\/organisations\/example-organisation\.html$/.test(f)) {
@@ -579,7 +602,7 @@ async function runChecks() {
           const activityHrefs = extractHrefValues(li);
           // Consider an activity sourced only when it cites an external non-placeholder http(s) link
           // (the worked example is exempt: its placeholder links still count).
-          const sourced = activityHrefs.some(h => isExternalHref(h) && (!isPlaceholderUrl(h) || isWorkedExample) && !isDonationUrl(h));
+          const sourced = activityHrefs.some(h => isExternalHref(h) && ((!isPlaceholderUrl(h) || isWorkedExample) && !isDonationUrl(h) && (ALLOW_HTTP_SOURCES || isSecureUrl(h))));
           if (!sourced) {
             const label = itemLabel(li) || '(empty list item)';
             errors.push(

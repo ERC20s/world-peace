@@ -18,6 +18,11 @@ const { ROOT, escapeHtml, pageUrl, unavailableText } = data;
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
+// Sort order for generated text. A fixed locale, not the machine's: the
+// output is committed and checked for staleness, so it must not change with
+// LANG / LC_ALL (Estonian, for one, sorts "Zambia" before "Tanzania").
+const collator = new Intl.Collator('en');
+
 function countryName(code) {
   return regionNames.of(code);
 }
@@ -31,9 +36,9 @@ function typeLabel(type) {
 // Initiatives from every conflict, ordered by conflict title, then start year, then name.
 function allInitiatives(conflicts) {
   const out = [];
-  const list = [...conflicts.values()].sort((a, b) => a.title.localeCompare(b.title));
+  const list = [...conflicts.values()].sort((a, b) => collator.compare(a.title, b.title));
   for (const c of list) {
-    const items = c.initiatives.slice().sort((a, b) => a.startYear - b.startYear || a.name.localeCompare(b.name));
+    const items = c.initiatives.slice().sort((a, b) => a.startYear - b.startYear || collator.compare(a.name, b.name));
     for (const it of items) out.push({ conflict: c, initiative: it });
   }
   return out;
@@ -62,7 +67,7 @@ function renderOptions(pairs, indent) {
 function renderCountryOptions(conflicts, indent) {
   const codes = new Set();
   for (const { initiative } of allInitiatives(conflicts)) codes.add(initiative.country);
-  const pairs = [...codes].map(c => [c, countryName(c)]).sort((a, b) => a[1].localeCompare(b[1]));
+  const pairs = [...codes].map(c => [c, countryName(c)]).sort((a, b) => collator.compare(a[1], b[1]));
   return renderOptions(pairs, indent);
 }
 
@@ -105,7 +110,7 @@ function listHtml(dir) {
 function sitePages() {
   const root = fs.readdirSync(ROOT).filter(f => /\.html$/.test(f)).sort();
   // The home page first, then the rest in path order.
-  root.sort((a, b) => (a === 'index.html' ? -1 : b === 'index.html' ? 1 : a.localeCompare(b)));
+  root.sort((a, b) => (a === 'index.html' ? -1 : b === 'index.html' ? 1 : collator.compare(a, b)));
   return [...root, ...listHtml('conflicts'), ...listHtml('content/organisations')];
 }
 

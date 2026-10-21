@@ -19,7 +19,8 @@
 //                 -> a warning; exit 0 unless --strict is passed (CI passes it)
 // Nothing is skipped silently: placeholder hosts, the site's own URLs, asset
 // and non-http links, and sources the data marks unavailable are each listed
-// or counted in the output.
+// or counted in the output. A marked URL that a page or another data entry
+// still cites without the mark is checked like any other.
 // The split matters because running the check offline (or behind a captive
 // portal) must not report every verified source as broken.
 
@@ -323,6 +324,8 @@ async function run() {
 
   // Source URLs recorded in data/. One the data marks unavailable is listed,
   // not fetched: the page shows it as text with "source unavailable (checked ...)".
+  // A URL that is also cited without the mark - linked from a page, or recorded
+  // by another data entry - is still checked, since that citation claims it works.
   const markedUnavailable = new Map();
   for (const f of await dataJsonFiles()) {
     let entry;
@@ -343,7 +346,9 @@ async function run() {
       }
     }
   }
-  for (const key of markedUnavailable.keys()) citations.delete(key);
+  for (const key of [...markedUnavailable.keys()]) {
+    if (citations.has(key)) markedUnavailable.delete(key);
+  }
 
   console.log(
     'Not fetched:', notHttp, 'relative/non-http link' + (notHttp === 1 ? '' : 's') + ',',

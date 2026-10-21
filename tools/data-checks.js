@@ -4,7 +4,8 @@
 // - validateDataFiles(): every data/conflicts/*.json, data/organisations/*.json
 //   and data/examples/*.json against the JSON Schemas in data/ (required
 //   fields, http(s) URLs, ISO dates, ISO 3166-1 country codes), plus the rules
-//   a schema cannot express (dates not in the future, start before end).
+//   a schema cannot express (dates not in the future, start before end,
+//   https unless ALLOW_HTTP_SOURCES is set).
 // - checkConflictPage(): a conflicts/<slug>.html page against its
 //   data/conflicts/<slug>.json entry, so the page and the data cannot drift.
 // - checkPageMeta(): description, canonical and Open Graph tags on a page.
@@ -55,22 +56,46 @@ function schemaErrors(kind, data) {
   return Array.from(new Set(validate.errors.map(formatAjvError)));
 }
 
+// Today's date where it is latest (UTC+14): a date is only "in the future"
+// once it has not begun anywhere, so a contributor east of UTC can record
+// their own today.
 function todayIso(now) {
-  return (now || new Date()).toISOString().slice(0, 10);
+  return new Date((now || new Date()).getTime() + 14 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+// http:// sources pass only when ALLOW_HTTP_SOURCES is set, as for page links
+// in tools/validate-pages.js.
+function allowHttpSources() {
+  const raw = String(process.env.ALLOW_HTTP_SOURCES || '').trim().toLowerCase();
+  return ['1', 'true', 'on', 'yes'].includes(raw);
+}
+
+function insecureUrlError(where, url, allowHttp) {
+  return !allowHttp && /^http:/i.test(url)
+    ? `${where} ${url} must use https (set ALLOW_HTTP_SOURCES to allow http)`
+    : null;
 }
 
 // Rules a JSON Schema cannot express. Assumes the entry passed the schema.
-function conflictRuleErrors(data, now) {
+function conflictRuleErrors(data, now, allowHttp) {
   const errors = [];
   const today = todayIso(now);
   const thisYear = Number(today.slice(0, 4));
+  const insecure = (where, url) => {
+    const e = insecureUrlError(where, url, allowHttp);
+    if (e) errors.push(e);
+  };
 
   if (data.sourcesCheckedOn > today) {
     errors.push(`sourcesCheckedOn ${data.sourcesCheckedOn} is in the future`);
   }
-  if (data.dateRange && data.dateRange.end && data.dateRange.end !== 'ongoing' &&
-      data.dateRange.end.slice(0, 4) < data.dateRange.start.slice(0, 4)) {
-    errors.push(`dateRange ends (${data.dateRange.end}) before it starts (${data.dateRange.start})`);
+  // start and end are each a year or a full date: compare at the precision both have.
+  if (data.dateRange && data.dateRange.end && data.dateRange.end !== 'ongoing') {
+    const { start, end } = data.dateRange;
+    const n = Math.min(start.length, end.length);
+    if (end.slice(0, n) < start.slice(0, n)) {
+      errors.push(`dateRange ends (${end}) before it starts (${start})`);
+    }
   }
 
   const names = new Set();
@@ -84,6 +109,7 @@ function conflictRuleErrors(data, now) {
     if (it.sourceUnavailable && it.sourceUnavailable.checkedOn > today) {
       errors.push(`/initiatives/${i}/sourceUnavailable/checkedOn ${it.sourceUnavailable.checkedOn} is in the future`);
     }
+    insecure(`/initiatives/${i}/sourceUrl`, it.sourceUrl);
   });
 
   const urls = new Set();
@@ -93,14 +119,19 @@ function conflictRuleErrors(data, now) {
     if (s.sourceUnavailable && s.sourceUnavailable.checkedOn > today) {
       errors.push(`/sources/${i}/sourceUnavailable/checkedOn ${s.sourceUnavailable.checkedOn} is in the future`);
     }
+    insecure(`/sources/${i}/url`, s.url);
   });
   return errors;
 }
 
-function organisationRuleErrors(data, now) {
+function organisationRuleErrors(data, now, allowHttp) {
   const errors = [];
   if (data.sourcesCheckedOn && data.sourcesCheckedOn > todayIso(now)) {
     errors.push(`sourcesCheckedOn ${data.sourcesCheckedOn} is in the future`);
+  }
+  for (const key of ['website', 'contact']) {
+    const e = data[key] === undefined ? null : insecureUrlError(`/${key}`, data[key], allowHttp);
+    if (e) errors.push(e);
   }
   return errors;
 }
@@ -122,6 +153,7 @@ function rel(p) {
 // conflicts maps slug -> parsed data for the entries that passed.
 function validateDataFiles(opts) {
   const now = opts && opts.now;
+  const allowHttp = opts && opts.allowHttp !== undefined ? opts.allowHttp : allowHttpSources();
   const errors = [];
   const notes = [];
   const conflicts = new Map();
@@ -139,7 +171,7 @@ function validateDataFiles(opts) {
       for (const e of schemaErrs) errors.push(`${rel(file)}: ${e}`);
       return null;
     }
-    const ruleErrs = kind === 'conflict' ? conflictRuleErrors(data, now) : organisationRuleErrors(data, now);
+    const ruleErrs = kind === 'conflict' ? conflictRuleErrors(data, now, allowHttp) : organisationRuleErrors(data, now, allowHttp);
     for (const e of ruleErrs) errors.push(`${rel(file)}: ${e}`);
     if (idKey) {
       const expected = path.basename(file, '.json');
@@ -342,6 +374,7 @@ module.exports = {
   unavailableText,
   schemaErrors,
   conflictRuleErrors,
+  organisationRuleErrors,
   validateDataFiles,
   checkConflictPage,
   checkPageMeta,

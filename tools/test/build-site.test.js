@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const { ROOT } = require('../data-checks');
 const {
   buildOutputs, staleOutputs, buildInitiativesPage, buildSitemap, sitePages, typeLabel
@@ -70,6 +71,29 @@ test('the sitemap lists every public page except noindex ones', () => {
   // The worked example carries <meta name="robots" content="noindex">.
   assert.ok(!xml.includes('example-organisation.html'));
   assert.equal((xml.match(/<url>/g) || []).length, pages.length - 1);
+});
+
+test('the generated order does not depend on the machine locale', () => {
+  // Estonian collation puts Z before T; the committed output must not care.
+  const script = `
+    const { buildInitiativesPage } = require(${JSON.stringify(path.join(ROOT, 'tools', 'build-site.js'))});
+    const shell = ['<!-- build-site:country-options -->', '<!-- /build-site:country-options -->',
+      '<!-- build-site:type-options -->', '<!-- /build-site:type-options -->',
+      '<!-- build-site:initiatives -->', '<!-- /build-site:initiatives -->'].join('\\n');
+    const conflict = (slug, title, country, name) => [slug, { slug, title, initiatives: [
+      { name, organisation: 'o', description: 'd', country, type: 'dialogue', startYear: 2000, sourceUrl: 'https://a.org/' }
+    ] }];
+    process.stdout.write(buildInitiativesPage(shell, new Map([
+      conflict('zambia', 'Zambia', 'ZM', 'Zeta'),
+      conflict('tanzania', 'Tanzania', 'TZ', 'Tau')
+    ])));`;
+  const build = (locale) => execFileSync(process.execPath, ['-e', script], {
+    env: { ...process.env, LC_ALL: locale, LANG: locale }, encoding: 'utf8'
+  });
+  const english = build('en_US.UTF-8');
+  assert.equal(build('et_EE.UTF-8'), english);
+  assert.ok(english.indexOf('<option value="TZ">') < english.indexOf('<option value="ZM">'), english);
+  assert.ok(english.indexOf('<strong>Tau</strong>') < english.indexOf('<strong>Zeta</strong>'), english);
 });
 
 test('type labels read as words', () => {

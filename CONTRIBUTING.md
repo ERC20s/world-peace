@@ -99,7 +99,8 @@ Do not delete the entry. Keep the URL in the data and mark it:
 with the URL as plain text followed by `source unavailable (checked 2026-10-21)`,
 then run `npm run build-site`. The validator checks the page and the data agree
 in both directions, and `check-links` lists the URL as `MARKED UNAVAILABLE`
-instead of fetching it. If a replacement source exists — an official move or an
+instead of fetching it (unless a page or another entry still cites the same URL
+without the mark, in which case it is checked). If a replacement source exists — an official move or an
 Internet Archive copy — cite that instead and drop the mark.
 
 ## Adding an organisation page

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Initiatives — World Peace</title>
+  <meta name="description" content="Search and filter every sourced peace-building initiative on World Peace by country, type of work and the year it began.">
+  <link rel="canonical" href="https://erc20s.github.io/world-peace/initiatives.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="World Peace">
+  <meta property="og:title" content="Initiatives — World Peace">
+  <meta property="og:description" content="Search and filter every sourced peace-building initiative on World Peace by country, type of work and the year it began.">
+  <meta property="og:url" content="https://erc20s.github.io/world-peace/initiatives.html">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1>Initiatives</h1>
+      <p class="tagline">Every sourced initiative on the conflict pages, in one searchable list.</p>
+      <nav class="site-nav" aria-label="Site">
+        <a href="index.html">Home</a> <span aria-hidden="true">·</span>
+        <a href="initiatives.html" aria-current="page">Initiatives</a> <span aria-hidden="true">·</span>
+        <a href="content/organisations/index.html">Organisations</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <p>Each initiative below is described on its conflict page, with the source it rests on.
+        The list is generated from <code>data/conflicts/</code> by <code>npm run build-site</code>;
+        do not edit it by hand.</p>
+    </section>
+
+    <section>
+      <h2>Search and filter</h2>
+      <!-- Shown by js/initiatives.js; without JavaScript the full list below still reads. -->
+      <form id="initiative-filters" class="filters" role="search" hidden>
+        <div class="filter">
+          <label for="initiative-search">Search</label>
+          <input id="initiative-search" name="q" type="search" placeholder="Name, organisation, description">
+        </div>
+        <div class="filter">
+          <label for="initiative-country">Country</label>
+          <select id="initiative-country" name="country">
+            <option value="">All countries</option>
+            <!-- build-site:country-options -->
+            <option value="LR">Liberia</option>
+            <option value="GB">United Kingdom</option>
+            <!-- /build-site:country-options -->
+          </select>
+        </div>
+        <div class="filter">
+          <label for="initiative-type">Type</label>
+          <select id="initiative-type" name="type">
+            <option value="">All types</option>
+            <!-- build-site:type-options -->
+            <option value="capacity-building">Capacity building</option>
+            <option value="civil-society-mobilisation">Civil society mobilisation</option>
+            <option value="community-reconciliation">Community reconciliation</option>
+            <option value="conflict-prevention">Conflict prevention</option>
+            <option value="dialogue">Dialogue</option>
+            <option value="transitional-justice">Transitional justice</option>
+            <option value="trauma-support">Trauma support</option>
+            <!-- /build-site:type-options -->
+          </select>
+        </div>
+        <div class="filter filter-years">
+          <span class="filter-label" aria-hidden="true">Started between</span>
+          <label for="initiative-from" class="sr-only">Started in or after year</label>
+          <input id="initiative-from" name="from" type="number" inputmode="numeric" placeholder="From">
+          <label for="initiative-to" class="sr-only">Started in or before year</label>
+          <input id="initiative-to" name="to" type="number" inputmode="numeric" placeholder="To">
+        </div>
+        <div class="filter">
+          <button type="reset">Clear filters</button>
+        </div>
+      </form>
+      <p id="initiative-status" class="muted search-status" role="status" aria-live="polite" hidden></p>
+    </section>
+
+    <section>
+      <h2>All initiatives</h2>
+      <ul id="initiative-list" class="initiative-list">
+        <!-- build-site:initiatives -->
+        <li data-country="LR" data-type="conflict-prevention" data-year="1998">
+          <strong>WANEP (West Africa Network for Peacebuilding)</strong> — A regional peacebuilding organisation, headquartered in Accra, that supports early-warning and conflict-prevention work including in Liberia.
+          <br><span class="muted">Liberia · Conflict prevention · Started 1998 · Run by West Africa Network for Peacebuilding (WANEP) · <a href="conflicts/liberia.html">Liberia page</a> · <a href="https://web.archive.org/web/20200101000000/https://wanep.org/">Source</a></span>
+        </li>
+        <li data-country="LR" data-type="capacity-building" data-year="2002">
+          <strong>WIPNET (Women in Peacebuilding Network)</strong> — A program of the West Africa Network for Peacebuilding that organised and trained women peace activists in Liberia during and after the conflict.
+          <br><span class="muted">Liberia · Capacity building · Started 2002 · Run by West Africa Network for Peacebuilding (WANEP) · <a href="conflicts/liberia.html">Liberia page</a> · <a href="https://web.archive.org/web/20200101000000/https://wanep.org/wanep/">Source</a></span>
+        </li>
+        <li data-country="LR" data-type="civil-society-mobilisation" data-year="2003">
+          <strong>Women of Liberia Mass Action for Peace</strong> — A grassroots movement of Christian and Muslim women, led by Leymah Gbowee, that organised nonviolent protests and sit-ins credited with helping press combatants toward the 2003 Accra talks.
+          <br><span class="muted">Liberia · Civil society mobilisation · Started 2003 · Run by Women of Liberia Mass Action for Peace · <a href="conflicts/liberia.html">Liberia page</a> · <a href="https://www.nobelprize.org/prizes/peace/2011/gbowee/facts/">Source</a></span>
+        </li>
+        <li data-country="LR" data-type="transitional-justice" data-year="2005">
+          <strong>Truth and Reconciliation Commission of Liberia</strong> — Established under the 2003 Accra Comprehensive Peace Agreement to investigate human rights violations from 1979 to 2003 and recommend reconciliation measures.
+          <br><span class="muted">Liberia · Transitional justice · Started 2005 · Run by Truth and Reconciliation Commission of Liberia · <a href="conflicts/liberia.html">Liberia page</a> · <a href="https://www.usip.org/publications/2006/02/truth-commission-liberia">Source</a></span>
+        </li>
+        <li data-country="GB" data-type="dialogue" data-year="1965">
+          <strong>Corrymeela Community</strong> — Northern Ireland&#39;s longest-running peace and reconciliation charity, running residential and community programs to promote contact and understanding.
+          <br><span class="muted">United Kingdom · Dialogue · Started 1965 · Run by Corrymeela Community · <a href="conflicts/northern-ireland.html">Northern Ireland page</a> · <a href="https://www.corrymeela.org/">Source</a></span>
+        </li>
+        <li data-country="GB" data-type="community-reconciliation" data-year="1990">
+          <strong>Community Relations Council (CRC)</strong> — Supports peace-building projects across Northern Ireland, offering grants and research into reconciliation.
+          <br><span class="muted">United Kingdom · Community reconciliation · Started 1990 · Run by Northern Ireland Community Relations Council · <a href="conflicts/northern-ireland.html">Northern Ireland page</a> · <a href="https://www.community-relations.org.uk/">Source</a></span>
+        </li>
+        <li data-country="GB" data-type="trauma-support" data-year="1991">
+          <strong>WAVE Trauma Centre</strong> — Provides trauma counselling and support services to victims of the conflict, contributing to community recovery.
+          <br><span class="muted">United Kingdom · Trauma support · Started 1991 · Run by WAVE Trauma Centre · <a href="conflicts/northern-ireland.html">Northern Ireland page</a> · <a href="https://wavetraumacentre.org.uk/">Source</a></span>
+        </li>
+        <!-- /build-site:initiatives -->
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Content is neutral and sourced. See site home for license and contribution notes.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/initiatives.js"></script>
+</body>
+</html>

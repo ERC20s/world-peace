@@ -20,6 +20,18 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;
 .site-footer{border-top:1px solid #e1e4e8;padding:1rem;background:#fff;color:var(--muted);margin-top:2rem}
 .sr-only{position:absolute;left:-9999px}
 input[type=search]{width:100%;padding:.5rem;border:1px solid #ccd;max-width:400px;margin:.5rem 0}
+/* Initiative search and filters (initiatives.html, js/initiatives.js). */
+.filters{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:flex-end;margin:.5rem 0}
+.filters[hidden]{display:none}
+.filter{display:flex;flex-direction:column;gap:.25rem}
+.filter label,.filter-label{font-size:0.95rem}
+.filter input[type=search]{margin:0}
+.filter select,.filter input[type=number],.filter button{padding:.45rem;border:1px solid #ccd;background:#fff;font:inherit}
+.filter-years{flex-direction:row;flex-wrap:wrap;align-items:center;gap:.25rem .5rem}
+.filter-years .filter-label{flex-basis:100%}
+.filter input[type=number]{width:6.5rem}
+.initiative-list{list-style:none;padding:0;margin:0}
+.initiative-list li{margin:.75rem 0;padding-bottom:.75rem;border-bottom:1px solid #e1e4e8}
 @media (min-width:600px){
   .site-header{display:flex;align-items:center;justify-content:space-between}
   .site-header .container{display:flex;align-items:center;gap:1rem}

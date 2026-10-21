@@ -1,0 +1,50 @@
+{
+  "slug": "northern-ireland",
+  "title": "Northern Ireland",
+  "summary": "Northern Ireland experienced decades of sectarian conflict known as \"The Troubles\" (late 1960s–1998). The 1998 Good Friday Agreement substantially reduced large-scale violence; ongoing community-level reconciliation, cross-community programs, and support for victims are part of continuing peace-building efforts.",
+  "dateRange": { "start": "1968", "end": "1998" },
+  "regions": ["Northern Ireland", "United Kingdom", "Ireland"],
+  "countries": ["GB"],
+  "initiatives": [
+    {
+      "name": "Community Relations Council (CRC)",
+      "organisation": "Northern Ireland Community Relations Council",
+      "description": "Supports peace-building projects across Northern Ireland, offering grants and research into reconciliation.",
+      "country": "GB",
+      "type": "community-reconciliation",
+      "startYear": 1990,
+      "sourceUrl": "https://www.community-relations.org.uk/"
+    },
+    {
+      "name": "Corrymeela Community",
+      "organisation": "Corrymeela Community",
+      "description": "Northern Ireland's longest-running peace and reconciliation charity, running residential and community programs to promote contact and understanding.",
+      "country": "GB",
+      "type": "dialogue",
+      "startYear": 1965,
+      "sourceUrl": "https://www.corrymeela.org/"
+    },
+    {
+      "name": "WAVE Trauma Centre",
+      "organisation": "WAVE Trauma Centre",
+      "description": "Provides trauma counselling and support services to victims of the conflict, contributing to community recovery.",
+      "country": "GB",
+      "type": "trauma-support",
+      "startYear": 1991,
+      "sourceUrl": "https://wavetraumacentre.org.uk/"
+    }
+  ],
+  "actions": [
+    "Read the organisations' websites and published reports to learn about their methods and impact.",
+    "Volunteer time or skills with local reconciliation programmes where listed (contact organisations directly; this guidance is illustrative, not fundraising).",
+    "Share reputable sources and verified histories rather than unverified claims; consult the links below."
+  ],
+  "sources": [
+    { "url": "https://www.community-relations.org.uk/", "description": "Community Relations Council — grants and research into reconciliation" },
+    { "url": "https://www.corrymeela.org/", "description": "Corrymeela Community — residential and community reconciliation programmes" },
+    { "url": "https://wavetraumacentre.org.uk/", "description": "WAVE Trauma Centre — trauma counselling and victim support services" },
+    { "url": "https://cain.ulster.ac.uk/", "description": "CAIN: Conflict and Politics in Northern Ireland — timeline and archives" }
+  ],
+  "neutralityReviewed": true,
+  "sourcesCheckedOn": "2026-10-21"
+}

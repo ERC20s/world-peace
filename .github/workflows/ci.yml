@@ -17,10 +17,20 @@ jobs:
 
       - run: npm ci
 
-      # npm run check = validate-pages + check-links (README, package.json).
-      - run: npm run check
+      # Unit and end-to-end tests for the validators, the build and the search script.
+      - run: npm test
 
-      # README "Validating examples locally".
+      # Pages, data/ against its JSON Schemas, page-vs-data, meta tags, and the
+      # generated initiatives.html / sitemap.xml being up to date.
+      - run: npm run validate-pages
+
+      # External links: each request times out after 10s, unreachable and 5xx
+      # answers are retried once, and --strict fails on anything still not OK.
+      # The step timeout bounds the whole run.
+      - run: npm run check-links -- --strict
+        timeout-minutes: 5
+
+      # README "Validating examples locally" (now also data/conflicts/*.json).
       - run: npm run validate-schemas
 
       # .d8a run: block - the path fixer must run cleanly (dry-run, writes nothing).

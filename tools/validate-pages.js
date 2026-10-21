@@ -633,7 +633,6 @@ async function runChecks() {
                 console.log('NOTE:', f, 'contains donation URL on worked example (allowed)');
               }
             }
-            }
           }
           });
         }

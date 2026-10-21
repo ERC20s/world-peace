@@ -50,18 +50,20 @@ async function processFile(file) {
   if (!isConflict && !isOrgDir) return { file, changes: [] };
 
   // Helper to replace attribute paths safely. It only touches href/src attributes
-  // that reference the given filename (ending) and are not absolute URLs.
-  function replaceAttrForFilename(attrName, filename, desiredPath) {
-    const re = new RegExp('(' + attrName + '\\s*=\\s*)("|\')([^"']*' + filename.replace(/\./g, '\\.') + '(?:[?#][^"']*)?)(\\2)', 'gi');
+  // whose path is the given filename behind nothing but ./ and ../ segments, so
+  // e.g. "index.html" never matches "../content/organisations/index.html".
+  // dotPrefix is the regex for those segments; pass one requiring a "../" where
+  // a bare filename means a different file (the sibling organisations index).
+  function replaceAttrForFilename(attrName, filename, desiredPath, dotPrefix = '(?:\\.{1,2}/)*') {
+    const re = new RegExp('(' + attrName + '\\s*=\\s*)("|\')(' + dotPrefix + filename.replace(/\./g, '\\.') + '(?:[?#][^"\']*)?)(\\2)', 'gi');
     out = out.replace(re, (m, pre, q, ppath, q2) => {
       // Skip absolute URLs (http://, https://, //host or leading slash)
       if (/^\s*(?:https?:)?\/\//i.test(ppath) || /^\s*\//.test(ppath)) {
         return m; // do not change absolute or root paths
       }
-      const { suffix } = preserveSuffix(ppath);
-      const cur = ppath.replace(/^[.\/]+/, ''); // collapse any leading ./ ../
+      const { base, suffix } = preserveSuffix(ppath);
       // Only change when different from desiredPath
-      if (cur === desiredPath || cur === desiredPath.replace(/^\.\//, '')) return m;
+      if (base === desiredPath) return m;
       const newAttr = pre + q + desiredPath + suffix + q2;
       changes.push({ before: m, after: newAttr, reason: filename + ' path normalization' });
       return newAttr;
@@ -94,7 +96,7 @@ async function processFile(file) {
     // content/organisations/*.html: ensure ../../css/styles.css, ../../js/main.js and ../../index.html
     replaceAttrForFilename('href', 'css/styles.css', '../../css/styles.css');
     replaceAttrForFilename('src', 'js/main.js', '../../js/main.js');
-    replaceAttrForFilename('href', 'index.html', '../../index.html');
+    replaceAttrForFilename('href', 'index.html', '../../index.html', '(?:\\.{1,2}/)*\\.\\./');
 
     // Conflict links: ensure '../../conflicts/<slug>.html'
     const conflictLinkRe = /(href\s*=\s*)("|')([^"']*conflicts\/([A-Za-z0-9._-]+\.html)(?:[?#][^"']*)?)(\2)/gi;

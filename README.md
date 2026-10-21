@@ -44,7 +44,8 @@ Content schemas
 - These schemas describe the data future conflict/organisation pages should be authored from; they do not yet drive the HTML templates automatically.
 
 Validating examples locally
-- Install a JSON Schema validator, e.g. `npm install -g ajv-cli` (or use any Draft-07 compatible validator).
-- Run: `ajv validate -s data/conflict.schema.json -d data/examples/conflict-example.json`
-- Run: `ajv validate -s data/organisation.schema.json -d data/examples/organisation-example.json`
-- Both commands should report the example file as valid.
+- Run `npm ci` once: it installs ajv-cli and ajv-formats as dev dependencies.
+- Run: `npm run validate-schemas` - it runs both commands below.
+- Run: `npx ajv validate -c ajv-formats -s data/conflict.schema.json -d data/examples/conflict-example.json`
+- Run: `npx ajv validate -c ajv-formats -s data/organisation.schema.json -d data/examples/organisation-example.json`
+- Both commands should report the example file as valid. `-c ajv-formats` is required: the schemas use `"format": "uri"`, which ajv-cli 5 rejects as an unknown format without it.

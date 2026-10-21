@@ -1,0 +1,59 @@
+{
+  "slug": "liberia",
+  "title": "Liberia",
+  "summary": "Liberia experienced two civil wars, the First Liberian Civil War (1989–1997) and the Second Liberian Civil War (1999–2003), which together killed an estimated 250,000 people and displaced much of the population. Sustained civil-society mobilisation, including the women-led Women of Liberia Mass Action for Peace campaign, contributed to pressure that helped bring warring parties to the negotiating table. The wars ended with the August 2003 Accra Comprehensive Peace Agreement, followed by a UN peacekeeping mission (UNMIL) and a Truth and Reconciliation Commission.",
+  "dateRange": { "start": "1989", "end": "2003" },
+  "regions": ["Liberia", "West Africa"],
+  "countries": ["LR"],
+  "initiatives": [
+    {
+      "name": "Women of Liberia Mass Action for Peace",
+      "organisation": "Women of Liberia Mass Action for Peace",
+      "description": "A grassroots movement of Christian and Muslim women, led by Leymah Gbowee, that organised nonviolent protests and sit-ins credited with helping press combatants toward the 2003 Accra talks.",
+      "country": "LR",
+      "type": "civil-society-mobilisation",
+      "startYear": 2003,
+      "sourceUrl": "https://www.nobelprize.org/prizes/peace/2011/gbowee/facts/"
+    },
+    {
+      "name": "WIPNET (Women in Peacebuilding Network)",
+      "organisation": "West Africa Network for Peacebuilding (WANEP)",
+      "description": "A program of the West Africa Network for Peacebuilding that organised and trained women peace activists in Liberia during and after the conflict.",
+      "country": "LR",
+      "type": "capacity-building",
+      "startYear": 2002,
+      "sourceUrl": "https://web.archive.org/web/20200101000000/https://wanep.org/wanep/"
+    },
+    {
+      "name": "WANEP (West Africa Network for Peacebuilding)",
+      "organisation": "West Africa Network for Peacebuilding (WANEP)",
+      "description": "A regional peacebuilding organisation, headquartered in Accra, that supports early-warning and conflict-prevention work including in Liberia.",
+      "country": "LR",
+      "type": "conflict-prevention",
+      "startYear": 1998,
+      "sourceUrl": "https://web.archive.org/web/20200101000000/https://wanep.org/"
+    },
+    {
+      "name": "Truth and Reconciliation Commission of Liberia",
+      "organisation": "Truth and Reconciliation Commission of Liberia",
+      "description": "Established under the 2003 Accra Comprehensive Peace Agreement to investigate human rights violations from 1979 to 2003 and recommend reconciliation measures.",
+      "country": "LR",
+      "type": "transitional-justice",
+      "startYear": 2005,
+      "sourceUrl": "https://www.usip.org/publications/2006/02/truth-commission-liberia"
+    }
+  ],
+  "actions": [
+    "Read the organisations' websites and published reports to learn about their methods and impact.",
+    "Volunteer time or skills with local reconciliation and peacebuilding programmes where listed (contact organisations directly; this guidance is illustrative, not fundraising).",
+    "Share reputable sources and verified histories rather than unverified claims; consult the links below."
+  ],
+  "sources": [
+    { "url": "https://www.nobelprize.org/prizes/peace/2011/gbowee/facts/", "description": "Nobel Prize — Leymah Gbowee facts" },
+    { "url": "https://web.archive.org/web/20200101000000/https://wanep.org/", "description": "West Africa Network for Peacebuilding (WANEP) — regional peacebuilding and early-warning (Internet Archive copy of wanep.org)" },
+    { "url": "https://www.usip.org/publications/2006/02/truth-commission-liberia", "description": "United States Institute of Peace — Truth Commission of Liberia" },
+    { "url": "https://peacekeeping.un.org/mission/unmil", "description": "United Nations Peacekeeping — UNMIL (United Nations Mission in Liberia) fact sheet: mandate under Security Council resolution 1509 and mission duration, 2003–2018" }
+  ],
+  "neutralityReviewed": true,
+  "sourcesCheckedOn": "2026-10-21"
+}

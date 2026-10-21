@@ -2,15 +2,24 @@
 // Simple no-dependency link checker for ERC20s/world-peace
 // Scans conflicts/ and content/organisations/ for external http(s) links.
 //
+// Also scans the site pages at the repository root (index.html,
+// initiatives.html) and the source URLs recorded in data/conflicts/*.json and
+// data/organisations/*.json.
+//
 // Usage: node tools/check-links.js [--strict]
 //
 // Every URL is checked ONCE, however many pages cite it (the same source is
 // normally cited twice on a conflict page: once under "Initiatives and
-// organisations" and again under "Sources"). Each result is one of three:
+// organisations" and again under "Sources"). Each request times out after
+// TIMEOUT ms. Each result is one of three:
 //   ok          - HEAD, or a GET retry, answered 2xx/3xx
-//   broken      - a real 4xx/5xx that survived the GET retry -> exit 2
+//   broken      - a 4xx that survived the GET retry, or a 5xx that survived
+//                 one more attempt -> exit 2
 //   unreachable - DNS / connection / timeout / 429 rate-limit, after one retry
-//                 -> a warning; exit 0 unless --strict is passed
+//                 -> a warning; exit 0 unless --strict is passed (CI passes it)
+// Nothing is skipped silently: placeholder hosts, the site's own URLs, asset
+// and non-http links, and sources the data marks unavailable are each listed
+// or counted in the output.
 // The split matters because running the check offline (or behind a captive
 // portal) must not report every verified source as broken.
 
@@ -23,7 +32,7 @@ const { URL } = require('url');
 const TIMEOUT = 10000; // 10s
 const MAX_REDIRECTS = 5;
 const CONCURRENCY = 6;
-const RETRY_DELAY = 1500; // ms, before the single retry of an unreachable URL
+const RETRY_DELAY = 1500; // ms, before the single retry of an unreachable or 5xx URL
 
 const STRICT = process.argv.slice(2).includes('--strict');
 
@@ -89,6 +98,52 @@ function isExternalHttp(url) {
 
 function isLikelyAsset(url) {
   return /\.(css|js|png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf)(\?|$)/i.test(url);
+}
+
+// HTML pages at the repository root (index.html, initiatives.html, ...).
+async function rootHtmlFiles() {
+  const entries = await fs.readdir('.', { withFileTypes: true });
+  return entries.filter(e => e.isFile() && /\.html?$/.test(e.name)).map(e => e.name).sort();
+}
+
+// data/conflicts/*.json and data/organisations/*.json.
+async function dataJsonFiles() {
+  const out = [];
+  for (const d of [path.join('data', 'conflicts'), path.join('data', 'organisations')]) {
+    let names = [];
+    try {
+      names = await fs.readdir(d);
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+    for (const n of names.sort()) if (n.endsWith('.json')) out.push(path.join(d, n));
+  }
+  return out;
+}
+
+// Every source URL a data entry records, with its "unavailable" mark if any.
+function dataSourceRefs(entry) {
+  const refs = [];
+  for (const it of entry.initiatives || []) {
+    if (it && it.sourceUrl) refs.push({ url: it.sourceUrl, unavailable: it.sourceUnavailable });
+  }
+  for (const s of entry.sources || []) {
+    if (s && s.url) refs.push({ url: s.url, unavailable: s.sourceUnavailable });
+  }
+  if (typeof entry.website === 'string') refs.push({ url: entry.website });
+  if (typeof entry.contact === 'string' && /^https?:/i.test(entry.contact)) refs.push({ url: entry.contact });
+  return refs;
+}
+
+// The published site's own base URL (data/site.json), so canonical links are
+// counted rather than fetched. null when the file is missing.
+async function siteBase() {
+  try {
+    return normaliseUrl(JSON.parse(await fs.readFile(path.join('data', 'site.json'), 'utf8')).baseUrl);
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
 }
 
 // Recognise placeholder / example hostnames that appear in templates and
@@ -193,11 +248,17 @@ async function attemptUrl(rawUrl) {
   }
 }
 
-// An unreachable answer is retried once: a single dropped connection or one
-// burst of rate limiting should not colour the report.
+// An unreachable or 5xx answer is retried once: a single dropped connection,
+// one burst of rate limiting or one overloaded server should not colour the
+// report. A 4xx is the server's considered answer and is not retried.
+function isRetryable(res) {
+  return res.state === 'unreachable' ||
+    (res.state === 'broken' && typeof res.status === 'number' && res.status >= 500);
+}
+
 async function checkUrl(rawUrl) {
   const first = await attemptUrl(rawUrl);
-  if (first.state !== 'unreachable') return first;
+  if (!isRetryable(first)) return first;
   await sleep(RETRY_DELAY);
   const second = await attemptUrl(rawUrl);
   return Object.assign(second, { retried: true });
@@ -205,15 +266,16 @@ async function checkUrl(rawUrl) {
 
 async function run() {
   const REPORT = process.argv.slice(2).includes('--report');
+  const SITE_BASE = await siteBase();
 
   const dirs = ['conflicts', path.join('content', 'organisations')];
-  const files = [];
+  const files = await rootHtmlFiles();
   for (const d of dirs) {
     files.push(...await listHtmlFiles(d));
   }
 
   if (!files.length) {
-    console.log('No HTML files found to scan in conflicts/ or content/organisations/.');
+    console.log('No HTML files found to scan at the root, in conflicts/ or in content/organisations/.');
     // Still produce an empty report when requested.
     if (REPORT) {
       await fs.mkdir('reports', { recursive: true });
@@ -230,22 +292,71 @@ async function run() {
 
   // URL -> the files that cite it. Checking is per URL; reporting is per file.
   const citations = new Map();
+  const cite = (url, file) => {
+    const key = normaliseUrl(url);
+    if (!citations.has(key)) citations.set(key, new Set());
+    citations.get(key).add(file);
+  };
   let hrefCount = 0;
+  let notHttp = 0;
+  let assets = 0;
+  let siteOwn = 0;
+  const readFailures = [];
   for (const f of files) {
     try {
       const links = await findLinksInFile(f);
       for (const l of links) {
         const url = l.url.trim();
-        if (!isExternalHttp(url)) continue;
-        if (isLikelyAsset(url)) continue;
-        const key = normaliseUrl(url);
+        if (!isExternalHttp(url)) { notHttp++; continue; }
+        if (isLikelyAsset(url)) { assets++; continue; }
+        // canonical links point at the published site itself, which
+        // validate-pages checks; fetching them tests the host, not a source.
+        if (SITE_BASE && normaliseUrl(url).startsWith(SITE_BASE)) { siteOwn++; continue; }
         hrefCount++;
-        if (!citations.has(key)) citations.set(key, new Set());
-        citations.get(key).add(f);
+        cite(url, f);
       }
     } catch (err) {
-      console.error('Failed reading', f, err.message || err);
+      readFailures.push(f);
+      console.error('ERROR: failed reading', f, err.message || err);
     }
+  }
+
+  // Source URLs recorded in data/. One the data marks unavailable is listed,
+  // not fetched: the page shows it as text with "source unavailable (checked ...)".
+  const markedUnavailable = new Map();
+  for (const f of await dataJsonFiles()) {
+    let entry;
+    try {
+      entry = JSON.parse(await fs.readFile(f, 'utf8'));
+    } catch (err) {
+      readFailures.push(f);
+      console.error('ERROR: failed reading', f, err.message || err);
+      continue;
+    }
+    for (const ref of dataSourceRefs(entry)) {
+      if (!isExternalHttp(ref.url)) continue;
+      hrefCount++;
+      if (ref.unavailable) {
+        markedUnavailable.set(normaliseUrl(ref.url), { checkedOn: ref.unavailable.checkedOn, file: f });
+      } else {
+        cite(ref.url, f);
+      }
+    }
+  }
+  for (const key of markedUnavailable.keys()) citations.delete(key);
+
+  console.log(
+    'Not fetched:', notHttp, 'relative/non-http link' + (notHttp === 1 ? '' : 's') + ',',
+    assets, 'asset link' + (assets === 1 ? '' : 's') + ',',
+    siteOwn, 'link' + (siteOwn === 1 ? '' : 's') + ' to this site (' + (SITE_BASE || 'no data/site.json') + '),',
+    markedUnavailable.size, 'source' + (markedUnavailable.size === 1 ? '' : 's') + ' marked unavailable in data/.'
+  );
+  for (const [url, m] of markedUnavailable) {
+    console.log('MARKED UNAVAILABLE (checked ' + m.checkedOn + '):', url, '- in', m.file);
+  }
+  if (readFailures.length) {
+    console.error('\nCould not read', readFailures.length, 'file(s):', readFailures.join(', '));
+    process.exit(2);
   }
 
   const urls = [...citations.keys()];

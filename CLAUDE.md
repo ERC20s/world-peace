@@ -1,17 +1,21 @@
 # CLAUDE.md
 
 world-peace is a plain HTML/CSS/JS static site mapping verifiable peace-building initiatives:
-per-conflict pages (`conflicts/`), organisation pages (`content/organisations/`), and JSON schemas (`data/`).
+per-conflict pages (`conflicts/`), organisation pages (`content/organisations/`), structured data and JSON schemas (`data/`),
+and a searchable initiatives list (`initiatives.html`) plus `sitemap.xml` generated from `data/`.
 
 ## Commands (Node 22)
 
 - Install: `npm ci`
 - Serve locally: `npm run web` (http on port 5001)
+- Tests: `npm test` (`node --test`, files in `tools/test/`)
 - Check (validate pages + external links): `npm run check`
-  - separately: `npm run validate-pages`, `npm run check-links` (unreachable hosts warn; `--strict` fails on them)
-- Validate schema examples: `npm run validate-schemas`
+  - separately: `npm run validate-pages` (pages, `data/` against the schemas, page-vs-data, meta tags, generated files up to date),
+    `npm run check-links` (unreachable hosts warn; `--strict` fails on them)
+- Regenerate `initiatives.html` and `sitemap.xml` after changing `data/` or adding a page: `npm run build-site`
+- Validate schema examples and data: `npm run validate-schemas`
 - Path fixer: `npm run fix-paths` (dry-run), `node tools/fix-relative-paths.js --apply` to write
-- CI (`.github/workflows/ci.yml`) runs `npm ci`, `npm run check`, `npm run validate-schemas`, `npm run fix-paths`.
+- CI (`.github/workflows/ci.yml`) runs `npm ci`, `npm test`, `npm run validate-pages`, `npm run check-links -- --strict`, `npm run validate-schemas`, `npm run fix-paths`.
 
 The `run:` block at the end of `.d8a` and README.md are the source of truth for how the project runs.
 

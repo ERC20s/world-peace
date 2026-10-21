@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ERC20s/world-peace/data/defs.schema.json",
+  "title": "Shared definitions",
+  "description": "Field formats shared by conflict.schema.json and organisation.schema.json.",
+  "definitions": {
+    "countryCode": {
+      "type": "string",
+      "description": "ISO 3166-1 alpha-2 country code, upper case (e.g. \"GB\", \"LR\"). The 249 officially assigned codes plus \"XK\" (Kosovo), the user-assigned code used by the EU and the IMF.",
+      "enum": [
+        "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
+        "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BL", "BM", "BN", "BO", "BQ", "BR", "BS",
+        "BT", "BV", "BW", "BY", "BZ", "CA", "CC", "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN",
+        "CO", "CR", "CU", "CV", "CW", "CX", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE",
+        "EG", "EH", "ER", "ES", "ET", "FI", "FJ", "FK", "FM", "FO", "FR", "GA", "GB", "GD", "GE", "GF",
+        "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GS", "GT", "GU", "GW", "GY", "HK", "HM",
+        "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR", "IS", "IT", "JE", "JM",
+        "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC",
+        "LI", "LK", "LR", "LS", "LT", "LU", "LV", "LY", "MA", "MC", "MD", "ME", "MF", "MG", "MH", "MK",
+        "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS", "MT", "MU", "MV", "MW", "MX", "MY", "MZ", "NA",
+        "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM", "PA", "PE", "PF", "PG",
+        "PH", "PK", "PL", "PM", "PN", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS", "RU", "RW",
+        "SA", "SB", "SC", "SD", "SE", "SG", "SH", "SI", "SJ", "SK", "SL", "SM", "SN", "SO", "SR", "SS",
+        "ST", "SV", "SX", "SY", "SZ", "TC", "TD", "TF", "TG", "TH", "TJ", "TK", "TL", "TM", "TN", "TO",
+        "TR", "TT", "TV", "TW", "TZ", "UA", "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI",
+        "VN", "VU", "WF", "WS", "YE", "YT", "ZA", "ZM", "ZW", "XK"
+      ]
+    },
+    "isoDate": {
+      "type": "string",
+      "description": "Calendar date in ISO 8601 form, YYYY-MM-DD. Checked as a real date (2026-02-30 is rejected).",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "format": "date"
+    },
+    "yearOrIsoDate": {
+      "description": "A four-digit year or an ISO 8601 date (YYYY-MM-DD).",
+      "anyOf": [
+        { "type": "string", "pattern": "^\\d{4}$" },
+        { "$ref": "#/definitions/isoDate" }
+      ]
+    },
+    "httpUrl": {
+      "type": "string",
+      "description": "Absolute http(s) URL. validate-pages additionally requires https unless ALLOW_HTTP_SOURCES is set.",
+      "format": "uri",
+      "pattern": "^https?://[^\\s/?#]+\\.[^\\s]*$"
+    },
+    "sourceUnavailable": {
+      "type": "object",
+      "description": "Set when the source no longer answers: the entry is kept and shown as \"source unavailable (checked YYYY-MM-DD)\" instead of being deleted. The URL stays recorded; the page shows it as text, not as a link.",
+      "additionalProperties": false,
+      "required": ["checkedOn"],
+      "properties": {
+        "checkedOn": { "$ref": "#/definitions/isoDate" }
+      }
+    }
+  }
+}

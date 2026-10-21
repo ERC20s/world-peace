@@ -98,6 +98,8 @@ function isOlderThanDays(date, days) {
 }
 
 const urlUtils = require('./url-utils');
+const dataChecks = require('./data-checks');
+const buildSite = require('./build-site');
 
 // True when the href points at an external source: http://, https:// or //host.
 function isExternalHref(href) {
@@ -444,7 +446,10 @@ async function runChecks() {
         initiatives.forEach((li, i) => {
           const hrefs = extractHrefValues(li);
           // Consider an initiative sourced only when it cites an external non-placeholder http(s) link.
-          const sourced = hrefs.some(h => isExternalHref(h) && !isPlaceholderUrl(h) && !isDonationUrl(h) && (ALLOW_HTTP_SOURCES || isSecureUrl(h)));
+          const linked = hrefs.some(h => isExternalHref(h) && !isPlaceholderUrl(h) && !isDonationUrl(h) && (ALLOW_HTTP_SOURCES || isSecureUrl(h)));
+          // A source that no longer answers stays listed, marked "source unavailable
+          // (checked YYYY-MM-DD)"; the data cross-check below holds the mark to the data.
+          const sourced = linked || dataChecks.UNAVAILABLE_RE.test(dataChecks.textOf(li));
           if (!sourced) {
             const label = itemLabel(li) || '(empty list item)';
             errors.push(
@@ -809,6 +814,83 @@ async function runChecks() {
       errors.push(`Failed to read ${orgIndexPosix}: ${err && err.message}`);
       console.error('ERROR: could not read', orgIndexPosix, err && err.message);
     }
+  }
+
+  // 5) Structured data: data/ against the JSON Schemas (required fields, URL
+  // format, ISO dates, ISO 3166-1 country codes), then each conflict page
+  // against its data/conflicts/<slug>.json entry.
+  const dataResult = dataChecks.validateDataFiles();
+  for (const n of dataResult.notes) console.log('NOTE:', n);
+  if (dataResult.errors.length) {
+    for (const e of dataResult.errors) {
+      errors.push(e);
+      console.error('ERROR:', e);
+    }
+  } else {
+    console.log('OK: data/ files match their schemas');
+  }
+
+  for (const f of conflictFiles) {
+    const slug = path.basename(f).replace(/\.html?$/i, '');
+    const dataFile = `data/conflicts/${slug}.json`;
+    const entry = dataResult.conflicts.get(slug);
+    if (!entry) {
+      if (!await fileExists(path.join('data', 'conflicts', slug + '.json'))) {
+        errors.push(`${toPosix(f)} has no data file ${dataFile}`);
+        console.error('ERROR:', toPosix(f), 'has no', dataFile);
+      }
+      // A data file that exists but failed its schema is already reported above.
+      continue;
+    }
+    const pageErrors = dataChecks.checkConflictPage(toPosix(f), await readFileCounted(f, 'utf8'), entry);
+    for (const e of pageErrors) {
+      errors.push(e);
+      console.error('ERROR:', e);
+    }
+    if (!pageErrors.length) console.log('OK:', toPosix(f), 'matches', dataFile);
+  }
+  const pageSlugs = new Set(conflictFiles.map(f => path.basename(f).replace(/\.html?$/i, '')));
+  for (const slug of dataResult.conflicts.keys()) {
+    if (!pageSlugs.has(slug)) {
+      errors.push(`data/conflicts/${slug}.json has no page conflicts/${slug}.html`);
+      console.error('ERROR: data/conflicts/' + slug + '.json has no page');
+    }
+  }
+
+  // 6) Search, sitemap and share metadata.
+  if (indexTxt !== null) {
+    if (!extractHrefValues(indexTxt).some(h => h.replace(/^\.\//, '') === 'initiatives.html')) {
+      errors.push('index.html does not link initiatives.html');
+      console.error('ERROR: index.html has no link to initiatives.html');
+    } else {
+      console.log('OK: index.html links initiatives.html');
+    }
+  }
+
+  for (const page of buildSite.sitePages()) {
+    const metaErrors = dataChecks.checkPageMeta(page, await readFileCounted(page, 'utf8'));
+    for (const e of metaErrors) {
+      errors.push(e);
+      console.error('ERROR:', e);
+    }
+    if (!metaErrors.length) console.log('OK:', page, 'has description, canonical and Open Graph tags');
+  }
+
+  // initiatives.html and sitemap.xml are generated; a stale copy misleads readers.
+  if (!dataResult.errors.length) {
+    try {
+      const stale = buildSite.staleOutputs(buildSite.buildOutputs());
+      for (const f of stale) {
+        errors.push(`${f} is out of date with data/ and the page list; run npm run build-site and commit the result`);
+        console.error('ERROR:', f, 'is out of date; run npm run build-site');
+      }
+      if (!stale.length) console.log('OK: initiatives.html and sitemap.xml are up to date');
+    } catch (err) {
+      errors.push(`Could not rebuild initiatives.html / sitemap.xml: ${err && err.message}`);
+      console.error('ERROR: build-site failed:', err && err.message);
+    }
+  } else {
+    console.error('ERROR: initiatives.html and sitemap.xml not checked: fix the data/ errors above first');
   }
 
   if (warnings.length) {

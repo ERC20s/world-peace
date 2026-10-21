@@ -8,6 +8,9 @@ Files added in this change:
 - conflicts/northern-ireland.html — example per-conflict page with initiatives, organisations, actions and sources
 - css/styles.css — minimal responsive site styles
 - js/main.js — small client-side search/filter for the conflict list
+- initiatives.html — every initiative from every conflict page in one list, searchable and filterable by country, type and start year (js/initiatives.js, no dependencies; the list reads without JavaScript too)
+- sitemap.xml — every public page; generated, like the initiatives list, by `npm run build-site` from data/ and the page list
+- Every page carries a meta description, a canonical link and Open Graph tags; the base URL is set once in data/site.json
 
 Conflict pages
 - templates/conflict.html — reusable, commented template for a per-conflict page (overview, initiatives and organisations, non-fundraising actions, sources). Each block names the field it fills in data/conflict.schema.json.
@@ -39,13 +42,16 @@ Notes for reviewers
 
 Content schemas
 - data/conflict.schema.json — JSON Schema for a conflict entry: slug, title, summary, optional date range, regions, initiatives (name, organisation, description, sourceUrl), optional organisation ids, actions ("what a reader can do today", non-fundraising), sources, and a neutralityReviewed flag.
-- data/organisation.schema.json — JSON Schema for an organisation entry: id, name, website, country, mission, optional contact channel, and linked initiative names.
+- data/organisation.schema.json — JSON Schema for an organisation entry: id, name, website, country (ISO 3166-1 alpha-2), mission, optional contact channel, and linked initiative names.
+- data/defs.schema.json — the shared formats: ISO 3166-1 alpha-2 country codes, ISO dates, http(s) URLs, and the "source unavailable" mark.
+- data/conflicts/<slug>.json — the structured data for each conflict page (initiatives with country, type and start year). `npm run validate-pages` validates it against the schema and checks the page says the same thing; `npm run build-site` generates initiatives.html and sitemap.xml from it.
 - data/examples/conflict-example.json and data/examples/organisation-example.json — generic placeholder examples that validate against the schemas above; not tied to any specific conflict page.
-- These schemas describe the data future conflict/organisation pages should be authored from; they do not yet drive the HTML templates automatically.
+- See CONTRIBUTING.md, "Conflict data" and "When a source goes dead".
 
 Validating examples locally
 - Run `npm ci` once: it installs ajv-cli and ajv-formats as dev dependencies.
 - Run: `npm run validate-schemas` - it runs both commands below.
-- Run: `npx ajv validate -c ajv-formats -s data/conflict.schema.json -d data/examples/conflict-example.json`
-- Run: `npx ajv validate -c ajv-formats -s data/organisation.schema.json -d data/examples/organisation-example.json`
-- Both commands should report the example file as valid. `-c ajv-formats` is required: the schemas use `"format": "uri"`, which ajv-cli 5 rejects as an unknown format without it.
+- Run: `npx ajv validate -c ajv-formats -r data/defs.schema.json -s data/conflict.schema.json -d data/examples/conflict-example.json -d "data/conflicts/*.json"`
+- Run: `npx ajv validate -c ajv-formats -r data/defs.schema.json -s data/organisation.schema.json -d data/examples/organisation-example.json`
+- Every file should report as valid. `-c ajv-formats` is required: the schemas use `"format": "uri"` and `"format": "date"`, which ajv-cli 5 rejects as unknown formats without it. `-r data/defs.schema.json` loads the shared definitions both schemas reference.
+- `npm run validate-pages` runs the same schemas in-process (plus rules a schema cannot express, such as dates in the future), and `npm test` runs the tests in tools/test/.

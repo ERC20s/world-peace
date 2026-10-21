@@ -1,7 +1,10 @@
 # Contributing
 
-This is a plain HTML/CSS/JS site: no framework, no build step. Open `index.html`
-in a browser, or serve the repository root with any static server, to preview.
+This is a plain HTML/CSS/JS site: no framework and no runtime dependencies. Open
+`index.html` in a browser, or serve the repository root with any static server,
+to preview. The one generated part is `initiatives.html`'s list and filter
+options plus `sitemap.xml`: `npm run build-site` writes them from `data/`, and
+the result is committed like any other file.
 
 ## Adding a conflict page
 
@@ -38,7 +41,66 @@ in a browser, or serve the repository root with any static server, to preview.
    `<p id="conflict-search-status" role="status" aria-live="polite">` above the
    list ("Showing 1 of 2 conflicts." or a no-results line), and `index.html?q=…`
    arrives already filtered, so links into a filtered list work.
-5. Open a pull request. A separate Code proposal is what merges it.
+5. Fill in the page's share and search metadata, right after `<title>` — the
+   template has the block. Every page under the site needs all of these, and
+   `node tools/validate-pages.js` fails a page that lacks one:
+
+   ```html
+   <meta name="description" content="One neutral sentence, at most 300 characters.">
+   <link rel="canonical" href="https://erc20s.github.io/world-peace/conflicts/<slug>.html">
+   <meta property="og:type" content="article">
+   <meta property="og:site_name" content="World Peace">
+   <meta property="og:title" content="<the <title> text, exactly>">
+   <meta property="og:description" content="<the description, exactly>">
+   <meta property="og:url" content="<the canonical URL, exactly>">
+   ```
+
+   The base URL comes from `data/site.json`; change it there (and in these tags)
+   if the site moves.
+6. Add the page's data: `data/conflicts/<slug>.json`, valid against
+   `data/conflict.schema.json` (see "Conflict data" below). The validator fails a
+   conflict page without one, and a data file without a page.
+7. Run `npm run build-site` to regenerate `initiatives.html` and `sitemap.xml`,
+   and commit both. The validator fails when either is out of date.
+8. Open a pull request. A separate Code proposal is what merges it.
+
+### Conflict data
+
+`data/conflicts/<slug>.json` holds the same content as the page in structured
+form, so initiatives can be searched and filtered on `initiatives.html` and the
+validators can check what a page claims. Shared formats live in
+`data/defs.schema.json`:
+
+- `countries` and each initiative's `country`: ISO 3166-1 alpha-2 codes,
+  upper case — `GB` for Northern Ireland, `LR` for Liberia (`UK` is rejected).
+  `XK` is accepted for Kosovo.
+- each initiative's `type`: one of the values listed in the schema (for example
+  `dialogue`, `trauma-support`, `transitional-justice`); `startYear`: the year
+  it was founded, launched or legally established, as a whole number.
+- URLs: absolute `http(s)` URLs (https unless `ALLOW_HTTP_SOURCES` is set).
+- dates (`sourcesCheckedOn`, `checkedOn`): real ISO dates, `YYYY-MM-DD`, not in
+  the future. `sourcesCheckedOn` must equal the page's "Sources last checked".
+
+The validator also holds the page to the data: the `<h1>` is the `title`; the
+"Initiatives and organisations" list has the same initiatives in the same order,
+each `<strong>` being the initiative's `name` and linking its `sourceUrl`; and
+the "Sources" list links the `sources` URLs in order.
+
+### When a source goes dead
+
+Do not delete the entry. Keep the URL in the data and mark it:
+
+```json
+"sourceUrl": "https://…",
+"sourceUnavailable": { "checkedOn": "2026-10-21" }
+```
+
+(the same field works on an entry in `sources`). On the page, replace the link
+with the URL as plain text followed by `source unavailable (checked 2026-10-21)`,
+then run `npm run build-site`. The validator checks the page and the data agree
+in both directions, and `check-links` lists the URL as `MARKED UNAVAILABLE`
+instead of fetching it. If a replacement source exists — an official move or an
+Internet Archive copy — cite that instead and drop the mark.
 
 ## Adding an organisation page
 
@@ -168,6 +230,12 @@ Tick every line before you open the pull request. Reviewers check the same list.
 - [ ] The page includes a visible "Sources last checked: YYYY-MM-DD" line and the
       date is an ISO (YYYY-MM-DD) date when the links were last validated.
 - [ ] The `<title>` reads "<Conflict title> — World Peace".
+- [ ] The `<head>` carries the description, canonical and Open Graph tags (step 5
+      above); `og:title`, `og:description` and `og:url` repeat the title,
+      description and canonical URL exactly.
+- [ ] `data/conflicts/<slug>.json` exists, validates, and matches the page;
+      `npm run build-site` has been run and `initiatives.html` / `sitemap.xml`
+      are committed. `npm test` and `npm run validate-pages` pass.
 - [ ] You state in the pull request that you have read the page back for
       neutrality (`neutralityReviewed`).
 
@@ -184,18 +252,22 @@ npm run check-links          # report; fails only on genuinely broken links
 npm run check-links -- --strict # also fail when a URL could not be reached (pass flags after a npm script)
 ```
 
-It scans `conflicts/` and `content/organisations/`, collects every external
-`http(s)` href, and checks each **unique** URL once however many pages cite it —
-a source listed under "Initiatives and organisations" and again under "Sources"
-is one request, not two. Each URL is tried with `HEAD` first; on any status of
-400 or above the same URL is retried with `GET` (many source hosts refuse `HEAD`
-from a script while serving the page normally), and only then judged.
+It scans the pages at the repository root, `conflicts/` and
+`content/organisations/`, plus the source URLs in `data/conflicts/*.json` and
+`data/organisations/*.json`, and checks each **unique** URL once however many
+places cite it — a source listed under "Initiatives and organisations" and again
+under "Sources" is one request, not two. Each request times out after 10
+seconds. Each URL is tried with `HEAD` first; on any status of 400 or above the
+same URL is retried with `GET` (many source hosts refuse `HEAD` from a script
+while serving the page normally), and only then judged. An unreachable or 5xx
+result is tried once more after a short pause.
 
 Results come back in three kinds:
 
 - `OK` — HEAD or the GET retry answered 2xx/3xx.
-- `BROKEN` — a real 4xx/5xx that survived the GET retry. Fix or replace the
-  source before submitting.
+- `BROKEN` — a 4xx that survived the GET retry, or a 5xx that survived the
+  extra attempt. Fix or replace the source, or mark it unavailable (above),
+  before submitting.
 - `UNREACHABLE` — DNS failure, refused connection, timeout or a 429 rate limit,
   after one automatic retry. This means the network could not answer, not that
   the source is gone.
@@ -209,11 +281,16 @@ except for the deliberate worked example page at
 `content/organisations/example-organisation.html`, which is allowed to use
 placeholder content.
 
+Nothing is skipped silently: the run prints how many links it did not fetch —
+relative links, asset links, links to the site itself (`canonical`, from
+`data/site.json`) and sources marked unavailable — and lists each placeholder and
+marked-unavailable URL.
+
 Exit codes: `0` clean (or unreachable-only), `2` broken links found (and, with
-`--strict`, unreachable ones too), `3` the script itself failed. So running the
-checker offline warns rather than declaring every verified source dead; CI or a
-release check should use `--strict`. The same command runs as the `link-check`
-entry in `.d8a`.
+`--strict`, unreachable ones too) or a page/data file could not be read, `3` the
+script itself failed. So running the checker offline warns rather than declaring
+every verified source dead; CI runs `npm run check-links -- --strict`. The same
+command runs as the `link-check` entry in `.d8a`.
 
 ## Tone rules, in short
 

@@ -9,10 +9,13 @@
     "validate-pages": "node tools/validate-pages.js",
     "validate-pages:report": "node tools/validate-pages.js --report",
     "fix-paths": "node tools/fix-relative-paths.js",
-    "validate-schemas": "ajv validate -c ajv-formats -s data/conflict.schema.json -d data/examples/conflict-example.json && ajv validate -c ajv-formats -s data/organisation.schema.json -d data/examples/organisation-example.json",
+    "validate-schemas": "ajv validate -c ajv-formats -r data/defs.schema.json -s data/conflict.schema.json -d data/examples/conflict-example.json -d \"data/conflicts/*.json\" && ajv validate -c ajv-formats -r data/defs.schema.json -s data/organisation.schema.json -d data/examples/organisation-example.json",
+    "build-site": "node tools/build-site.js",
+    "test": "node --test \"tools/test/*.test.js\"",
     "check": "npm run validate-pages && npm run check-links"
   },
   "devDependencies": {
+    "ajv": "8.20.0",
     "ajv-cli": "5.0.0",
     "ajv-formats": "3.0.1"
   }

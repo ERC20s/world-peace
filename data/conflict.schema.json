@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/ERC20s/world-peace/data/conflict.schema.json",
   "title": "Conflict",
-  "description": "A single conflict page: neutral, sourced peace-building content.",
+  "description": "A single conflict page: neutral, sourced peace-building content. Real entries live in data/conflicts/<slug>.json, one per conflicts/<slug>.html page. Shared field formats are in defs.schema.json.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,10 +10,12 @@
     "title",
     "summary",
     "regions",
+    "countries",
     "initiatives",
     "actions",
     "sources",
-    "neutralityReviewed"
+    "neutralityReviewed",
+    "sourcesCheckedOn"
   ],
   "properties": {
     "slug": {
@@ -35,37 +37,74 @@
       "type": "object",
       "description": "Approximate active period of the conflict, if applicable.",
       "additionalProperties": false,
+      "required": ["start"],
       "properties": {
-        "start": { "type": "string", "description": "Year or ISO date the conflict is generally considered to have started." },
-        "end": { "type": "string", "description": "Year or ISO date it ended, or \"ongoing\"." }
+        "start": { "$ref": "defs.schema.json#/definitions/yearOrIsoDate", "description": "Year or ISO date the conflict is generally considered to have started." },
+        "end": {
+          "description": "Year or ISO date it ended, or \"ongoing\".",
+          "anyOf": [
+            { "$ref": "defs.schema.json#/definitions/yearOrIsoDate" },
+            { "const": "ongoing" }
+          ]
+        }
       }
     },
     "regions": {
       "type": "array",
-      "description": "Countries or regions involved.",
-      "items": { "type": "string" },
+      "description": "Countries or regions involved, as display names.",
+      "items": { "type": "string", "minLength": 1 },
       "minItems": 1
+    },
+    "countries": {
+      "type": "array",
+      "description": "ISO 3166-1 alpha-2 codes of the countries involved.",
+      "items": { "$ref": "defs.schema.json#/definitions/countryCode" },
+      "minItems": 1,
+      "uniqueItems": true
     },
     "initiatives": {
       "type": "array",
-      "description": "Concrete, verifiable peace-building initiatives, each attributable to an organisation and a source.",
+      "description": "Concrete, verifiable peace-building initiatives, each attributable to an organisation and a source. Each one appears, with the same name and source URL, in the \"Initiatives and organisations\" list of the conflict page.",
       "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "organisation", "description", "sourceUrl"],
+        "required": ["name", "organisation", "description", "country", "type", "startYear", "sourceUrl"],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1, "description": "Exactly the text of the initiative's <strong> on the conflict page." },
           "organisation": { "type": "string", "minLength": 1, "description": "Name of the organisation running the initiative; should match an organisation.schema.json entry where one exists." },
           "description": { "type": "string", "minLength": 1 },
-          "sourceUrl": { "type": "string", "format": "uri" }
+          "country": { "$ref": "defs.schema.json#/definitions/countryCode", "description": "ISO 3166-1 alpha-2 code of the country the initiative works in for this conflict." },
+          "type": {
+            "type": "string",
+            "description": "What kind of initiative it is; drives the type filter on initiatives.html.",
+            "enum": [
+              "capacity-building",
+              "civil-society-mobilisation",
+              "community-reconciliation",
+              "conflict-prevention",
+              "dialogue",
+              "peacekeeping",
+              "research",
+              "transitional-justice",
+              "trauma-support"
+            ]
+          },
+          "startYear": {
+            "type": "integer",
+            "description": "Year the initiative began (founded, launched or legally established). Drives the year filter on initiatives.html.",
+            "minimum": 1800,
+            "maximum": 2100
+          },
+          "sourceUrl": { "$ref": "defs.schema.json#/definitions/httpUrl" },
+          "sourceUnavailable": { "$ref": "defs.schema.json#/definitions/sourceUnavailable" }
         }
       }
     },
     "organisations": {
       "type": "array",
       "description": "Optional list of organisation ids (see organisation.schema.json) active in this conflict.",
-      "items": { "type": "string" }
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" }
     },
     "actions": {
       "type": "array",
@@ -75,15 +114,16 @@
     },
     "sources": {
       "type": "array",
-      "description": "Sources supporting the summary and initiatives.",
+      "description": "Sources supporting the summary and initiatives, in the order of the page's Sources list.",
       "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["url", "description"],
         "properties": {
-          "url": { "type": "string", "format": "uri" },
-          "description": { "type": "string", "minLength": 1 }
+          "url": { "$ref": "defs.schema.json#/definitions/httpUrl" },
+          "description": { "type": "string", "minLength": 1 },
+          "sourceUnavailable": { "$ref": "defs.schema.json#/definitions/sourceUnavailable" }
         }
       }
     },
@@ -92,9 +132,8 @@
       "description": "True once a contributor has confirmed the page uses neutral tone and contains no fundraising or advocacy language."
     },
     "sourcesCheckedOn": {
-      "type": "string",
-      "description": "ISO date when the page's external links were last validated, e.g. 2026-09-02",
-      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      "$ref": "defs.schema.json#/definitions/isoDate",
+      "description": "ISO date when the page's external links were last validated, e.g. 2026-09-02. Must equal the page's \"Sources last checked\" line."
     }
   }
 }

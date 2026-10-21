@@ -7,11 +7,15 @@
     "end": "ongoing"
   },
   "regions": ["Example Country"],
+  "countries": ["GB"],
   "initiatives": [
     {
       "name": "Example Dialogue Programme",
       "organisation": "Example Reconciliation Trust",
       "description": "A cross-community dialogue programme bringing together representatives to discuss reconciliation, illustrative of the level of detail expected.",
+      "country": "GB",
+      "type": "dialogue",
+      "startYear": 1990,
       "sourceUrl": "https://example.org/dialogue-programme"
     }
   ],

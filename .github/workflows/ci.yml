@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # npm run check = validate-pages + check-links (README, package.json).
+      - run: npm run check
+
+      # README "Validating examples locally".
+      - run: npm run validate-schemas
+
+      # .d8a run: block - the path fixer must run cleanly (dry-run, writes nothing).
+      - run: npm run fix-paths

@@ -27,11 +27,8 @@ const RETRY_DELAY = 1500; // ms, before the single retry of an unreachable URL
 
 const STRICT = process.argv.slice(2).includes('--strict');
 
-// Send what a reader's browser sends: some hosts answer 403 to anything that
-// does not look like one, which says nothing about whether the source is live.
-const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+const USER_AGENT = 'world-peace-link-checker/2.0 (+https://github.com/ERC20s/world-peace)';
 const ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
-const ACCEPT_LANGUAGE = 'en-GB,en;q=0.9';
 
 // Transport-level failures: the network could not answer, which says nothing
 // about whether the source is still published.
@@ -120,7 +117,8 @@ function requestOnce(u, method, timeout, redirectsLeft) {
       return;
     }
     const lib = parsed.protocol === 'https:' ? https : http;
-    const headers = { 'user-agent': USER_AGENT, accept: ACCEPT, 'accept-language': ACCEPT_LANGUAGE };
+    const headers = { 'user-agent': USER_AGENT };
+    if (method === 'GET') headers.accept = ACCEPT;
     const opts = {
       method,
       hostname: parsed.hostname,

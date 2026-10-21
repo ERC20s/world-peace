@@ -17,9 +17,11 @@ function copySite() {
   return dir;
 }
 
-function validate(dir) {
+function validate(dir, env) {
   try {
-    const out = execFileSync(process.execPath, ['tools/validate-pages.js'], { cwd: dir, stdio: 'pipe', encoding: 'utf8' });
+    const out = execFileSync(process.execPath, ['tools/validate-pages.js'], {
+      cwd: dir, stdio: 'pipe', encoding: 'utf8', env: { ...process.env, ALLOW_HTTP_SOURCES: '', ...env }
+    });
     return { code: 0, out };
   } catch (err) {
     return { code: err.status, out: String(err.stdout) + String(err.stderr) };
@@ -70,4 +72,21 @@ test('a stale sitemap or initiatives list fails the run', () => {
   assert.equal(r.code, 2, r.out);
   assert.match(r.out, /- initiatives.html is out of date/);
   assert.match(r.out, /- sitemap.xml is out of date/);
+});
+
+test('an http:// URL in data/ fails the run unless ALLOW_HTTP_SOURCES is set', () => {
+  const dir = copySite();
+  fs.mkdirSync(path.join(dir, 'data', 'organisations'));
+  fs.writeFileSync(path.join(dir, 'data', 'organisations', 'corrymeela-community.json'), JSON.stringify({
+    id: 'corrymeela-community',
+    name: 'Corrymeela Community',
+    website: 'http://www.corrymeela.org/',
+    country: 'GB',
+    mission: 'Peace and reconciliation programmes in Northern Ireland.'
+  }));
+  const r = validate(dir);
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /- data\/organisations\/corrymeela-community.json: \/website http:\/\/www.corrymeela.org\/ must use https/);
+  const allowed = validate(dir, { ALLOW_HTTP_SOURCES: '1' });
+  assert.equal(allowed.code, 0, allowed.out);
 });

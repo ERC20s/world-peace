@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const {
-  ROOT, schemaErrors, conflictRuleErrors, validateDataFiles, checkConflictPage, checkPageMeta
+  ROOT, schemaErrors, conflictRuleErrors, organisationRuleErrors, validateDataFiles, checkConflictPage, checkPageMeta
 } = require('../data-checks');
 
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
@@ -72,16 +72,73 @@ test('rules a schema cannot express', () => {
   const now = new Date('2026-10-21T12:00:00Z');
   const c = liberia();
   assert.deepEqual(conflictRuleErrors(c, now), []);
-  c.sourcesCheckedOn = '2026-10-22';
+  c.sourcesCheckedOn = '2026-10-23';
   c.initiatives[0].startYear = 2027;
   c.initiatives[1].country = 'GH';
   c.dateRange = { start: '2003', end: '1989' };
   assert.deepEqual(conflictRuleErrors(c, now), [
-    'sourcesCheckedOn 2026-10-22 is in the future',
+    'sourcesCheckedOn 2026-10-23 is in the future',
     'dateRange ends (1989) before it starts (2003)',
     '/initiatives/0/startYear 2027 is in the future',
     "/initiatives/1/country GH is not one of the conflict's countries (LR)"
   ]);
+});
+
+test('a date already begun east of UTC is not in the future', () => {
+  // 20:00 UTC on 21 October is 07:00 on 22 October in Sydney (UTC+11).
+  const now = new Date('2026-10-21T20:00:00Z');
+  const c = liberia();
+  c.sourcesCheckedOn = '2026-10-22';
+  c.initiatives[0].sourceUnavailable = { checkedOn: '2026-10-22' };
+  assert.deepEqual(conflictRuleErrors(c, now), []);
+  const o = orgExample();
+  o.sourcesCheckedOn = '2026-10-22';
+  assert.deepEqual(organisationRuleErrors(o, now), []);
+
+  // A date that has not begun anywhere yet (UTC+14 is the furthest ahead).
+  c.sourcesCheckedOn = '2026-10-23';
+  assert.deepEqual(conflictRuleErrors(c, now), ['sourcesCheckedOn 2026-10-23 is in the future']);
+  o.sourcesCheckedOn = '2026-10-23';
+  assert.deepEqual(organisationRuleErrors(o, now), ['sourcesCheckedOn 2026-10-23 is in the future']);
+});
+
+test('a dateRange is compared at full precision when both ends are dates', () => {
+  const now = new Date('2026-10-21T12:00:00Z');
+  const c = liberia();
+  c.dateRange = { start: '2003-08-18', end: '2003-01-01' };
+  assert.deepEqual(conflictRuleErrors(c, now), ['dateRange ends (2003-01-01) before it starts (2003-08-18)']);
+  // A bare year covers the whole year, so it neither starts nor ends early.
+  c.dateRange = { start: '2003', end: '2003-01-01' };
+  assert.deepEqual(conflictRuleErrors(c, now), []);
+  c.dateRange = { start: '2003-08-18', end: '2003' };
+  assert.deepEqual(conflictRuleErrors(c, now), []);
+  c.dateRange = { start: '2003-08-18', end: '2002' };
+  assert.deepEqual(conflictRuleErrors(c, now), ['dateRange ends (2002) before it starts (2003-08-18)']);
+});
+
+test('http:// URLs in data/ need ALLOW_HTTP_SOURCES, like page links', () => {
+  const now = new Date('2026-10-21T12:00:00Z');
+  const c = liberia();
+  c.initiatives[0].sourceUrl = 'http://www.nobelprize.org/prizes/peace/2011/gbowee/facts/';
+  c.initiatives[0].sourceUnavailable = { checkedOn: '2026-10-21' };
+  c.sources[3].url = 'http://peacekeeping.un.org/mission/unmil';
+  assert.deepEqual(conflictRuleErrors(c, now), [
+    '/initiatives/0/sourceUrl http://www.nobelprize.org/prizes/peace/2011/gbowee/facts/ must use https (set ALLOW_HTTP_SOURCES to allow http)',
+    '/sources/3/url http://peacekeeping.un.org/mission/unmil must use https (set ALLOW_HTTP_SOURCES to allow http)'
+  ]);
+  assert.deepEqual(conflictRuleErrors(c, now, true), []);
+
+  const o = orgExample();
+  o.website = 'http://example.org';
+  o.contact = 'http://example.org/contact';
+  assert.deepEqual(organisationRuleErrors(o, now), [
+    '/website http://example.org must use https (set ALLOW_HTTP_SOURCES to allow http)',
+    '/contact http://example.org/contact must use https (set ALLOW_HTTP_SOURCES to allow http)'
+  ]);
+  assert.deepEqual(organisationRuleErrors(o, now, true), []);
+  o.website = 'https://example.org';
+  o.contact = 'mailto:info@example.org';
+  assert.deepEqual(organisationRuleErrors(o, now), []);
 });
 
 test('each conflict page matches its data', () => {

@@ -109,3 +109,20 @@ test('an unreadable data file fails the run', async () => {
   assert.equal(r.code, 2, r.out);
   assert.match(r.out, /Could not read 1 file\(s\): data\/conflicts\/bad\.json/);
 });
+
+test('a URL marked unavailable in one place but still cited live elsewhere is checked', async () => {
+  // The initiative entry marks /dead unavailable; the Sources entry for the
+  // same URL does not, and the page still links it there.
+  const dir = site([`${base}/ok`, `${base}/dead`], {
+    'data/conflicts/x.json': {
+      initiatives: [{ sourceUrl: `${base}/dead`, sourceUnavailable: { checkedOn: '2026-10-21' } }],
+      sources: [{ url: `${base}/dead` }]
+    }
+  });
+  const r = await run(dir);
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, new RegExp(`BROKEN: ${base}/dead status: 404 - cited by conflicts/x.html, data/conflicts/x.json`));
+  assert.equal(hits.get('/dead'), 2); // HEAD, then GET
+  assert.doesNotMatch(r.out, /MARKED UNAVAILABLE/);
+  assert.match(r.out, /0 sources marked unavailable/);
+});
